@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { debounce } from '@/lib/debounce';
 import { useMatchDetection } from '@/hooks/useMatchDetection';
 import { removeUserFromActiveRooms } from '@/lib/room-utils';
+import CopyRiotIdButton from '@/components/CopyRiotIdButton';
 
 // Lazy load RoomChat component
 const RoomChat = dynamic(() => import('@/components/RoomChat'), {
@@ -90,7 +91,7 @@ const PlayerList = memo(({
               unoptimized
             />
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-tft-gold-light">{player.riot_id}</span>
                 {player.id === room.host_id && (
                   <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">
@@ -99,6 +100,13 @@ const PlayerList = memo(({
                 )}
                 {isCurrentPlayer && (
                   <span className="text-xs text-tft-teal">(Bạn)</span>
+                )}
+                {/* Copy Riot ID button - only show when room is ready */}
+                {room.status === 'ready' && (
+                  <CopyRiotIdButton 
+                    riotId={player.riot_id} 
+                    roomId={room.id}
+                  />
                 )}
               </div>
               <div className="text-xs text-tft-gold/60">
