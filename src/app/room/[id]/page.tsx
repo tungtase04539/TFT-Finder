@@ -12,6 +12,7 @@ import { useCopyTracking } from '@/hooks/useCopyTracking';
 import { removeUserFromActiveRooms } from '@/lib/room-utils';
 import { removePlayersNotInGame } from '@/lib/game-detection';
 import CopyRiotIdButton from '@/components/CopyRiotIdButton';
+import ReportButton from '@/components/ReportButton';
 
 // Lazy load RoomChat component
 const RoomChat = dynamic(() => import('@/components/RoomChat'), {
@@ -114,6 +115,13 @@ const PlayerList = memo(({
                     roomId={room.id}
                   />
                 )}
+                {/* Report button - show for all players except yourself */}
+                <ReportButton
+                  userId={player.id}
+                  userName={player.riot_id}
+                  roomId={room.id}
+                  currentUserId={currentUserId}
+                />
               </div>
               <div className="text-xs text-tft-gold/60">
                 {player.tft_tier || 'Chưa rank'}
