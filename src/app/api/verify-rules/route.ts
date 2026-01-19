@@ -167,7 +167,7 @@ function checkRule(rule: TFTRule, player: PlayerData): RuleViolation | null {
     case 'equals':
       if (Array.isArray(verifyValue)) {
         // For rules like "placement must be 1 or 8"
-        violated = !verifyValue.includes(actualValue as number);
+        violated = !(verifyValue as number[]).includes(actualValue as number);
       } else if (typeof actualValue === 'number' && typeof verifyValue === 'number') {
         // For rules like "only use 5-cost"
         if (verifyField === 'units.cost') {
@@ -181,13 +181,13 @@ function checkRule(rule: TFTRule, player: PlayerData): RuleViolation | null {
 
     case 'includes':
       if (Array.isArray(actualValue)) {
-        violated = !actualValue.includes(verifyValue as number);
+        violated = !(actualValue as number[]).includes(verifyValue as number);
       }
       break;
 
     case 'excludes':
       if (Array.isArray(actualValue)) {
-        violated = actualValue.includes(verifyValue as number);
+        violated = (actualValue as number[]).includes(verifyValue as number);
       }
       break;
   }
