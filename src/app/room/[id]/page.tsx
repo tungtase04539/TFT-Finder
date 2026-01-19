@@ -279,11 +279,21 @@ export default function RoomPage() {
       .eq('id', roomId)
       .single();
 
-    if (roomError || !roomData) {
+    if (roomError) {
+      console.error('[ROOM] Fetch error:', roomError);
+      setError(`Lỗi tải phòng: ${roomError.message}`);
+      setLoading(false);
+      return;
+    }
+
+    if (!roomData) {
+      console.error('[ROOM] Room not found:', roomId);
       setError('Không tìm thấy phòng');
       setLoading(false);
       return;
     }
+
+    console.log('[ROOM] Loaded room:', roomData);
 
     // Auto-join room if not already in and room is not full
     const maxPlayers = roomData.max_players || 8;
