@@ -18,8 +18,8 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
   - Add RLS policies for admin access
   - _Requirements: All requirements_
 
-- [ ] 2. Copy Riot ID Feature
-  - [ ] 2.1 Create CopyRiotIdButton component
+- [-] 2. Copy Riot ID Feature
+  - [x] 2.1 Create CopyRiotIdButton component
     - Display copy button next to each player's Riot ID
     - Copy full Riot ID (GameName#TAG) to clipboard
     - Show visual confirmation (toast notification)
@@ -33,14 +33,14 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
 - [ ] 3. Copy Action Tracking System
-  - [ ] 3.1 Create useCopyTracking hook
+  - [x] 3.1 Create useCopyTracking hook
     - Track last_copy_action timestamp from room
     - Calculate time since last copy
     - Return shouldTriggerDetection flag (true if > 3 minutes)
     - Only active when room status = "ready"
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-  - [ ] 3.2 Integrate useCopyTracking into room page
+  - [x] 3.2 Integrate useCopyTracking into room page
     - Use hook to monitor copy actions
     - Trigger game detection when shouldTriggerDetection = true
     - Display countdown timer showing time until detection
@@ -55,7 +55,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - **Validates: Requirements 2.4**
 
 - [ ] 4. Auto Game Detection and Player Removal
-  - [ ] 4.1 Create API route /api/detect-game-participants
+  - [x] 4.1 Create API route /api/detect-game-participants
     - Accept roomId and puuids array
     - Query Riot API for recent matches
     - Find common match among players
@@ -63,14 +63,14 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Return playersInGame and playersNotInGame arrays
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-  - [ ] 4.2 Create removePlayersNotInGame function
+  - [x] 4.2 Create removePlayersNotInGame function
     - Remove players from room.players array
     - Remove players from room.players_agreed array
     - Update room in database
     - Notify remaining players via realtime
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [ ] 4.3 Integrate game detection into room page
+  - [x] 4.3 Integrate game detection into room page
     - Call detect-game-participants when timer triggers
     - Display detection status to users
     - Show list of players removed
@@ -82,7 +82,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - **Validates: Requirements 4.1, 4.2, 4.3**
 
 - [ ] 5. Report System - Frontend Components
-  - [ ] 5.1 Create ReportModal component
+  - [x] 5.1 Create ReportModal component
     - Display violation type checkboxes (game_sabotage, rule_violation, harassment, discrimination)
     - Text description textarea (optional)
     - Image upload input (max 3 files, 5MB each)
@@ -90,13 +90,13 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Submit button
     - _Requirements: 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 7.1, 7.2, 7.3_
 
-  - [ ] 5.2 Create ReportButton component
+  - [x] 5.2 Create ReportButton component
     - Display report icon/button next to player name
     - Open ReportModal on click
     - Pass reported user info to modal
     - _Requirements: 5.1_
 
-  - [ ] 5.3 Integrate ReportButton into PlayerList
+  - [x] 5.3 Integrate ReportButton into PlayerList
     - Add report button to each player card
     - Cannot report yourself
     - _Requirements: 5.1_
@@ -116,7 +116,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - **Validates: Requirements 7.2, 7.3**
 
 - [ ] 6. Report System - Backend API
-  - [ ] 6.1 Create API route /api/reports/create
+  - [x] 6.1 Create API route /api/reports/create
     - Validate user is authenticated
     - Validate violation types array
     - Upload evidence files to Supabase Storage (report-evidence bucket)
