@@ -9,12 +9,14 @@ import { createClient } from '@/lib/supabase/client';
 import { debounce } from '@/lib/debounce';
 import { useMatchDetection } from '@/hooks/useMatchDetection';
 import { useCopyTracking } from '@/hooks/useCopyTracking';
+import { useMatchResultTracking } from '@/hooks/useMatchResultTracking';
 import { removeUserFromActiveRooms } from '@/lib/room-utils';
 import { removePlayersNotInGame } from '@/lib/game-detection';
 import { checkBanStatus } from '@/lib/ban-middleware';
 import CopyRiotIdButton from '@/components/CopyRiotIdButton';
 import ReportButton from '@/components/ReportButton';
 import BanMessage from '@/components/BanMessage';
+import WinCountBadge from '@/components/WinCountBadge';
 
 // Lazy load RoomChat component
 const RoomChat = dynamic(() => import('@/components/RoomChat'), {
@@ -40,6 +42,7 @@ interface Profile {
   profile_icon_id?: number;
   tft_tier?: string;
   tft_rank?: string;
+  win_count?: number;
 }
 
 interface Room {
@@ -125,8 +128,8 @@ const PlayerList = memo(({
                   currentUserId={currentUserId}
                 />
               </div>
-              <div className="text-xs text-tft-gold/60">
-                {player.tft_tier || 'Chưa rank'}
+              <div className="mt-1">
+                <WinCountBadge winCount={player.win_count || 0} size="sm" />
               </div>
             </div>
             <div>
@@ -342,9 +345,13 @@ export default function RoomPage() {
       if (room?.status === 'ready') {
         console.log('[ROOM] Match started! Auto-updating status to playing...');
         const supabase = createClient();
+        const now = new Date().toISOString();
         await supabase
           .from('rooms')
-          .update({ status: 'playing' })
+          .update({ 
+            status: 'playing',
+            game_detected_at: now
+          })
           .eq('id', roomId);
       }
     },
@@ -369,6 +376,13 @@ export default function RoomPage() {
           console.log('[ROOM] Room status updated to completed');
         });
     }
+  });
+
+  // Match result tracking - track results 1 hour after game detected
+  const { tracking: trackingResult, tracked: resultTracked, error: trackingError } = useMatchResultTracking({
+    roomId,
+    matchId: matchResult?.matchId || null,
+    gameDetectedAt: room?.game_detected_at || null
   });
 
   // Auto-trigger game detection when shouldTriggerDetection = true
@@ -460,7 +474,7 @@ export default function RoomPage() {
     // Get user profile - select only needed fields
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, riot_id, puuid, profile_icon_id, tft_tier, tft_rank, verified')
+      .select('id, riot_id, puuid, profile_icon_id, tft_tier, tft_rank, verified, win_count')
       .eq('id', user.id)
       .single();
 
@@ -537,7 +551,7 @@ export default function RoomPage() {
     if (roomData.players?.length > 0) {
       const { data: playerProfiles } = await supabase
         .from('profiles')
-        .select('id, riot_id, puuid, profile_icon_id, tft_tier, tft_rank')
+        .select('id, riot_id, puuid, profile_icon_id, tft_tier, tft_rank, win_count')
         .in('id', roomData.players);
 
       setPlayers(playerProfiles || []);
@@ -914,6 +928,39 @@ export default function RoomPage() {
                     (Kiểm tra mỗi 30 giây)
                   </p>
                 </div>
+
+                {/* Match Result Tracking Status */}
+                {room.game_detected_at && matchResult?.matchId && (
+                  <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      {trackingResult && (
+                        <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                      )}
+                      <h4 className="text-purple-400 font-semibold">
+                        {resultTracked ? '✅ Đã ghi nhận kết quả' : '⏱️ Đang chờ ghi nhận kết quả'}
+                      </h4>
+                    </div>
+                    {resultTracked ? (
+                      <p className="text-sm text-purple-300/80">
+                        Kết quả trận đấu đã được ghi nhận. Win count đã được cập nhật!
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-sm text-purple-300/80">
+                          Hệ thống sẽ ghi nhận kết quả sau 1 giờ kể từ khi game bắt đầu
+                        </p>
+                        <p className="text-xs text-purple-300/60 mt-1">
+                          Thời gian bắt đầu: {new Date(room.game_detected_at).toLocaleString('vi-VN')}
+                        </p>
+                      </>
+                    )}
+                    {trackingError && (
+                      <p className="text-sm text-red-400 mt-2">
+                        ⚠️ Lỗi: {trackingError}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

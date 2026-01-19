@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { debounce } from '@/lib/debounce';
 import { checkBanStatus } from '@/lib/ban-middleware';
 import BanMessage from '@/components/BanMessage';
+import WinCountBadge from '@/components/WinCountBadge';
 
 interface Room {
   id: string;
@@ -21,6 +22,7 @@ interface Room {
     riot_id: string;
     profile_icon_id: number;
     tft_tier: string;
+    win_count: number;
   };
 }
 
@@ -30,6 +32,7 @@ interface Profile {
   profile_icon_id: number;
   tft_tier: string;
   verified: boolean;
+  win_count: number;
 }
 
 // Memoized RoomCard component
@@ -84,8 +87,8 @@ const RoomCard = memo(({
               👑 Host
             </span>
           </div>
-          <div className="text-xs text-tft-gold/60">
-            {room.host_profile?.tft_tier || 'Unranked'}
+          <div className="mt-1">
+            <WinCountBadge winCount={room.host_profile?.win_count || 0} size="sm" />
           </div>
         </div>
         <div className={`
@@ -205,7 +208,7 @@ export default function LobbyBrowserPage() {
     // Get user profile - select only needed fields
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, riot_id, profile_icon_id, tft_tier, verified')
+      .select('id, riot_id, profile_icon_id, tft_tier, verified, win_count')
       .eq('id', authUser.id)
       .single();
 
@@ -227,7 +230,7 @@ export default function LobbyBrowserPage() {
         host_id,
         rules_text,
         created_at,
-        host_profile:profiles!host_id(riot_id, profile_icon_id, tft_tier)
+        host_profile:profiles!host_id(riot_id, profile_icon_id, tft_tier, win_count)
       `)
       .in('status', ['forming', 'ready'])
       .order('created_at', { ascending: false })

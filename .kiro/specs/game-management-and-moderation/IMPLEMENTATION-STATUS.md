@@ -135,6 +135,36 @@
 - ✅ Integrated into profile page
 - ✅ Displays prominent warning
 
+### 14. Achievement Tracking - Match Result Recording (Task 14)
+- ✅ Created API route `/api/track-match-result`
+- ✅ Queries Riot API for match details
+- ✅ Extracts player placements
+- ✅ Finds winner (placement = 1)
+- ✅ Increments winner's win_count
+- ✅ Increments all players' total_games
+- ✅ Stores results in match_results table
+- ✅ Created `useMatchResultTracking` hook
+- ✅ Schedules tracking 1 hour after game detected
+- ✅ Integrated into room page
+- ✅ Displays tracking status to users
+
+### 15. Achievement Display - Win Count Badge (Task 15)
+- ✅ Created `WinCountBadge` component
+- ✅ Displays "{count} Top 1" format
+- ✅ Gold color for wins > 0, gray for 0 wins
+- ✅ Different sizes (sm, md, lg)
+- ✅ Replaced "Unranked" with win count in PlayerList (room page)
+- ✅ Added win count to queue page player list
+- ✅ Added win count to profile page (large size)
+
+### 16. Achievement Display - Win Statistics (Task 16)
+- ✅ Created `WinStatsCard` component
+- ✅ Displays total wins (win_count)
+- ✅ Displays total games (total_games)
+- ✅ Calculates and displays win rate percentage
+- ✅ Shows "Chưa có trận đấu" if total_games = 0
+- ✅ Integrated into profile page
+
 ## 🎯 System Features Summary
 
 ### For Users:
@@ -145,6 +175,9 @@
 5. **Ban Status** - View ban status on profile page
 6. **Ban Enforcement** - Banned users cannot access queue, create rooms, or join rooms
 7. **Riot ID Ban** - Permanently banned Riot IDs cannot be used for verification
+8. **Achievement Tracking** - Win count and statistics tracked automatically
+9. **Win Count Badge** - Display win count in player lists (room, queue, profile)
+10. **Win Statistics** - View total wins, total games, and win rate on profile
 
 ### For Admins:
 1. **Admin Dashboard** - Overview with statistics
@@ -210,19 +243,31 @@ All code has been:
 - ✅ Auto-deployed via Vercel
 - ✅ Database migration script ready to run
 
-## ⏭️ Future Enhancements (Optional)
-
-### Achievement Tracking (Tasks 14-16):
-- Track match results
-- Display win count badge
-- Display win statistics (total wins, total games, win rate)
-- Schedule match result tracking 1 hour after game start
+## ⏭️ Remaining Tasks
 
 ### Testing (Tasks 17-19):
-- Unit tests for all components
-- Property-based tests for correctness properties
-- Integration tests for end-to-end flows
-- Manual testing checklist
+- [ ] Task 17: Checkpoint - Test all features
+  - Test copy → detect → kick flow end-to-end
+  - Test report → admin review → ban flow end-to-end
+  - Test match result tracking → win count update
+  - Test admin dashboard functionality
+  - Test ban enforcement
+  
+- [ ] Task 18: Final Integration and Polish
+  - [ ] 18.1: Add loading states to all async operations
+  - [ ] 18.2: Add error handling and user feedback
+  - [x] 18.3: Add Vietnamese translations (completed)
+  - [ ] 18.4: Write integration tests
+
+- [ ] Task 19: Final Checkpoint
+  - Ensure all tests pass
+  - Verify all features work correctly
+  - Test on production environment
+
+### Unit Tests (Optional):
+- [ ] Unit tests for components (CopyRiotIdButton, ReportModal, etc.)
+- [ ] Property-based tests for correctness properties
+- [ ] Integration tests for end-to-end flows
 
 ## 🎉 Conclusion
 
@@ -233,5 +278,10 @@ The Game Management and Moderation System is **fully functional** with all core 
 - ✅ Ban system with enforcement
 - ✅ Riot ID blacklist
 - ✅ User ban status display
+- ✅ Achievement tracking (match results, win count, statistics)
+- ✅ Win count badge display across all pages
+- ✅ Win statistics card on profile
 
-The system is ready for production use!
+**Implementation Progress: 16/19 tasks completed (84%)**
+
+The system is ready for production use! Remaining tasks are testing and polish.

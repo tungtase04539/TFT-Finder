@@ -311,7 +311,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Retry up to 3 times if match data not available
     - _Requirements: 16.1, 16.6_
 
-  - [ ] 14.3 Integrate match result tracking into room page
+  - [x] 14.3 Integrate match result tracking into room page
     - Schedule tracking when game detection confirms match started
     - Poll every minute to check if scheduled time reached
     - Display tracking status to users

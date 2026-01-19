@@ -13,6 +13,8 @@ import AuthMethodCard from '@/components/profile/AuthMethodCard';
 import CreatePasswordModal from '@/components/auth/CreatePasswordModal';
 import LinkGoogleModal from '@/components/auth/LinkGoogleModal';
 import BanStatusCard from '@/components/BanStatusCard';
+import WinCountBadge from '@/components/WinCountBadge';
+import WinStatsCard from '@/components/WinStatsCard';
 
 interface Profile {
   id: string;
@@ -20,6 +22,8 @@ interface Profile {
   email: string | null;
   has_password: boolean;
   has_google: boolean;
+  win_count: number;
+  total_games: number;
 }
 
 interface BanInfo {
@@ -92,7 +96,7 @@ export default function ProfilePage() {
       // Get profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, riot_id, email, has_password, has_google')
+        .select('id, riot_id, email, has_password, has_google, win_count, total_games')
         .eq('id', user.id)
         .single();
 
@@ -181,6 +185,12 @@ export default function ProfilePage() {
             />
           )}
 
+          {/* Win Statistics */}
+          <WinStatsCard 
+            winCount={profile.win_count || 0}
+            totalGames={profile.total_games || 0}
+          />
+
           {/* Account Info */}
           <div className="bg-[#0f1923] border border-[#1e2328] rounded-lg p-6">
             <h2 className="text-xl font-bold text-[#f0e6d2] mb-4">
@@ -199,6 +209,10 @@ export default function ProfilePage() {
                   <span className="text-[#f0e6d2] font-medium">{profile.email}</span>
                 </div>
               )}
+              <div className="flex items-center gap-3 pt-2">
+                <span className="text-[#a09080] w-24">Thành tích:</span>
+                <WinCountBadge winCount={profile.win_count || 0} size="lg" />
+              </div>
             </div>
           </div>
 
