@@ -133,14 +133,14 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 5.3, 5.4, 5.5, 5.6, 5.7_
 
 - [ ] 7. Admin Account Setup
-  - [ ] 7.1 Create admin account creation script
+  - [x] 7.1 Create admin account creation script
     - Create account with email admin@admin.com
     - Set password to Anhtung1998
     - Set role to "admin" in profiles table
     - Mark as verified
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ] 7.2 Create admin middleware
+  - [x] 7.2 Create admin middleware
     - Check if user has role = "admin"
     - Redirect non-admins to home page
     - Apply to /admin/* routes
@@ -151,7 +151,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - **Validates: Requirements 9.2, 9.3**
 
 - [ ] 8. Admin Dashboard - Overview Page
-  - [ ] 8.1 Create /admin/dashboard page
+  - [x] 8.1 Create /admin/dashboard page
     - Protected route with admin middleware
     - Display statistics cards:
       * Total users count
@@ -161,7 +161,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
       * Total bans count
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8_
 
-  - [ ] 8.2 Create API route /api/admin/stats
+  - [x] 8.2 Create API route /api/admin/stats
     - Query database for all statistics
     - Return counts for dashboard
     - Verify admin role
