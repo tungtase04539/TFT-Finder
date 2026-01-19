@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import RoomChat, { sendSystemMessage } from '@/components/RoomChat';
 
 interface Profile {
   id: string;
@@ -514,6 +515,11 @@ export default function RoomPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Chat Section */}
+        <div className="mt-8">
+          <RoomChat roomId={roomId} currentUserId={currentUser?.id || ''} />
         </div>
       </main>
     </div>

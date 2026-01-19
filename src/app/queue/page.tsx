@@ -4,194 +4,101 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 
-interface QueuePlayer {
+interface Room {
   id: string;
-  user_id: string;
-  joined_at: string;
-  profiles: {
+  status: string;
+  players: string[];
+  players_agreed: string[];
+  host_id: string;
+  rules_text: string | null;
+  created_at: string;
+  host_profile?: {
     riot_id: string;
     profile_icon_id: number;
     tft_tier: string;
-    tft_rank: string;
-    tft_lp: number;
-    tft_wins: number;
-    tft_losses: number;
   };
 }
 
-interface UserProfile {
+interface Profile {
+  id: string;
   riot_id: string;
+  profile_icon_id: number;
   tft_tier: string;
-  tft_rank: string;
+  verified: boolean;
 }
 
-// Rank tier to color mapping
-const tierColors: Record<string, string> = {
-  'IRON': 'text-gray-400',
-  'BRONZE': 'text-amber-600',
-  'SILVER': 'text-gray-300',
-  'GOLD': 'text-yellow-400',
-  'PLATINUM': 'text-teal-400',
-  'EMERALD': 'text-emerald-400',
-  'DIAMOND': 'text-blue-400',
-  'MASTER': 'text-purple-400',
-  'GRANDMASTER': 'text-red-400',
-  'CHALLENGER': 'text-yellow-300',
-  'UNRANKED': 'text-gray-500',
-};
-
-const tierNames: Record<string, string> = {
-  'IRON': 'Sắt',
-  'BRONZE': 'Đồng',
-  'SILVER': 'Bạc',
-  'GOLD': 'Vàng',
-  'PLATINUM': 'Bạch Kim',
-  'EMERALD': 'Ngọc Bảo',
-  'DIAMOND': 'Kim Cương',
-  'MASTER': 'Cao Thủ',
-  'GRANDMASTER': 'Đại Cao Thủ',
-  'CHALLENGER': 'Thách Đấu',
-  'UNRANKED': 'Chưa rank',
-};
-
-export default function QueuePage() {
-  const [inQueue, setInQueue] = useState(false);
-  const [queuePlayers, setQueuePlayers] = useState<QueuePlayer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(false);
-  const [user, setUser] = useState<{ id: string } | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [matchFound, setMatchFound] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState<QueuePlayer | null>(null);
+export default function LobbyBrowserPage() {
   const router = useRouter();
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [user, setUser] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
 
-  // Smart background refresh - call once when page loads
-  const triggerBackgroundRefresh = useCallback(async () => {
-    try {
-      await fetch('/api/refresh-rank', { method: 'POST' });
-    } catch (error) {
-      console.log('Background refresh skipped:', error);
-    }
-  }, []);
-
-  const fetchQueue = useCallback(async () => {
+  const fetchRooms = useCallback(async () => {
     const supabase = createClient();
-    
-    const { data } = await supabase
-      .from('queue')
-      .select(`
-        id,
-        user_id,
-        joined_at,
-        profiles (
-          riot_id,
-          profile_icon_id,
-          tft_tier,
-          tft_rank,
-          tft_lp,
-          tft_wins,
-          tft_losses
-        )
-      `)
-      .eq('status', 'waiting')
-      .order('joined_at', { ascending: true });
 
-    if (data) {
-      setQueuePlayers(data as unknown as QueuePlayer[]);
-      
-      if (user) {
-        const isInQueue = data.some((p) => p.user_id === user.id);
-        setInQueue(isInQueue);
-      }
-
-      if (data.length >= 8) {
-        setMatchFound(true);
-        setTimeout(() => {
-          router.push('/room/demo');
-        }, 2000);
-      }
+    // Get current user
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
+      router.push('/login');
+      return;
     }
-  }, [user, router]);
 
-  useEffect(() => {
-    const initPage = async () => {
-      const supabase = createClient();
-      
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        router.push('/login');
-        return;
-      }
-      setUser(authUser);
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authUser.id)
+      .single();
 
-      // Get initial profile data
-      const { data: profileData } = await supabase
+    if (!profile?.verified) {
+      router.push('/verify');
+      return;
+    }
+
+    setUser(profile);
+
+    // Get all open rooms
+    const { data: roomsData } = await supabase
+      .from('rooms')
+      .select('*')
+      .in('status', ['forming', 'ready'])
+      .order('created_at', { ascending: false });
+
+    if (roomsData) {
+      // Get host profiles
+      const hostIds = [...new Set(roomsData.map(r => r.host_id))];
+      const { data: hostProfiles } = await supabase
         .from('profiles')
-        .select('verified, riot_id, tft_tier, tft_rank, tft_rank_updated_at')
-        .eq('id', authUser.id)
-        .single();
+        .select('id, riot_id, profile_icon_id, tft_tier')
+        .in('id', hostIds);
 
-      if (!profileData?.verified) {
-        router.push('/verify');
-        return;
-      }
+      const hostsMap = new Map(hostProfiles?.map(p => [p.id, p]) || []);
       
-      setProfile(profileData);
-      setLoading(false);
+      const roomsWithHosts = roomsData.map(room => ({
+        ...room,
+        host_profile: hostsMap.get(room.host_id),
+      }));
 
-      // Refresh current user's rank if outdated (> 24h or never updated)
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const needsRefresh = !profileData.tft_rank_updated_at || 
-        new Date(profileData.tft_rank_updated_at) < oneDayAgo;
+      setRooms(roomsWithHosts);
+    }
 
-      if (needsRefresh) {
-        try {
-          const response = await fetch('/api/refresh-rank', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              refreshCurrentUser: true,
-              userId: authUser.id,
-            }),
-          });
-          
-          const result = await response.json();
-          
-          if (result.refreshed && result.newRank) {
-            // Update local state with new rank
-            setProfile(prev => prev ? {
-              ...prev,
-              tft_tier: result.newRank.tier,
-              tft_rank: result.newRank.rank,
-            } : null);
-          }
-        } catch (error) {
-          console.log('Current user refresh skipped:', error);
-        }
-      }
-
-      // Also trigger background refresh for other users
-      triggerBackgroundRefresh();
-    };
-
-    initPage();
-  }, [router, triggerBackgroundRefresh]);
+    setLoading(false);
+  }, [router]);
 
   useEffect(() => {
-    if (!user) return;
+    fetchRooms();
 
-    fetchQueue();
-
+    // Subscribe to room changes
     const supabase = createClient();
     const channel = supabase
-      .channel('queue-realtime')
+      .channel('rooms_changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'queue' },
+        { event: '*', schema: 'public', table: 'rooms' },
         () => {
-          fetchQueue();
+          fetchRooms();
         }
       )
       .subscribe();
@@ -199,74 +106,18 @@ export default function QueuePage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, fetchQueue]);
+  }, [fetchRooms]);
 
-  const joinQueue = async () => {
-    if (!user) return;
-    setJoining(true);
-
-    const supabase = createClient();
-    await supabase.from('queue').insert({
-      user_id: user.id,
-      status: 'waiting',
-    });
-
-    setJoining(false);
-    setInQueue(true);
-    fetchQueue();
-  };
-
-  const leaveQueue = async () => {
-    if (!user) return;
-
-    const supabase = createClient();
-    await supabase
-      .from('queue')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('status', 'waiting');
-
-    setInQueue(false);
-    fetchQueue();
-  };
-
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await leaveQueue();
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
-  const handleSwitchAccount = async () => {
-    const supabase = createClient();
-    await leaveQueue();
-    
-    // Reset verified status to force re-verification
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({
-          verified: false,
-          riot_id: null,
-          puuid: null,
-          summoner_id: null,
-          tft_rank_updated_at: null,
-        })
-        .eq('id', user.id);
-    }
-    
-    router.push('/verify');
+  const handleCreateRoom = () => {
+    router.push('/create-room');
   };
 
   const getIconUrl = (iconId: number) =>
     `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`;
 
-  const formatRankDisplay = (tier: string, rank: string) => {
-    if (!tier || tier === 'UNRANKED') return tierNames['UNRANKED'];
-    if (['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(tier)) {
-      return tierNames[tier] || tier;
-    }
-    return `${tierNames[tier] || tier} ${rank}`;
+  const parseRules = (rulesText: string | null): string[] => {
+    if (!rulesText) return [];
+    return rulesText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   };
 
   if (loading) {
@@ -274,7 +125,7 @@ export default function QueuePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="loading-spinner mx-auto mb-4"></div>
-          <p className="text-tft-gold">Đang tải...</p>
+          <p className="text-tft-gold">Đang tải phòng...</p>
         </div>
       </div>
     );
@@ -291,233 +142,154 @@ export default function QueuePage() {
           <h1 className="text-xl font-bold text-tft-gold">TFT FINDER</h1>
         </Link>
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <span className="text-tft-teal text-sm block">{profile?.riot_id}</span>
-            <span className={`text-xs ${tierColors[profile?.tft_tier || 'UNRANKED']}`}>
-              {formatRankDisplay(profile?.tft_tier || 'UNRANKED', profile?.tft_rank || '')}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <button 
-              onClick={handleSwitchAccount} 
-              className="text-tft-teal hover:text-tft-teal/80 text-xs border border-tft-teal/30 px-2 py-1 rounded"
-            >
-              🔄 Đổi tài khoản
-            </button>
-            <button onClick={handleLogout} className="text-tft-gold/60 hover:text-tft-gold text-xs">
-              Đăng xuất
-            </button>
+          <button
+            onClick={handleCreateRoom}
+            className="btn-primary px-4 py-2"
+          >
+            ➕ Tạo Phòng Mới
+          </button>
+          <div className="flex items-center gap-2">
+            <img
+              src={getIconUrl(user?.profile_icon_id || 29)}
+              alt="icon"
+              className="w-8 h-8 rounded-lg"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = getIconUrl(29);
+              }}
+            />
+            <span className="text-tft-gold-light text-sm">{user?.riot_id}</span>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        {matchFound ? (
-          <div className="text-center animate-pulse">
-            <div className="text-6xl mb-6">🎉</div>
-            <h2 className="text-3xl font-bold text-tft-gold mb-4">ĐÃ TÌM THẤY TRẬN!</h2>
-            <p className="text-tft-teal">Đang chuyển đến phòng chờ...</p>
-          </div>
-        ) : (
-          <>
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-tft-gold-light mb-2">
-                {inQueue ? '🔍 Đang Tìm Trận...' : 'Sẵn Sàng Chiến?'}
-              </h2>
-              <p className="text-tft-gold/60">
-                {inQueue
-                  ? 'Chờ đủ 8 người để bắt đầu'
-                  : 'Nhấn nút bên dưới để vào hàng chờ'}
-              </p>
-            </div>
+      <main className="flex-1 container mx-auto px-6 py-8">
+        {/* Title */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-tft-gold mb-2">
+            🎮 Phòng Custom Game
+          </h2>
+          <p className="text-tft-gold/60">
+            Chọn phòng có luật phù hợp hoặc tạo phòng mới
+          </p>
+        </div>
 
-            {/* 8 Player Slots with Rank */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
-              {[...Array(8)].map((_, i) => {
-                const player = queuePlayers[i];
-                const isCurrentUser = player && user && player.user_id === user.id;
-                
-                return (
-                  <div
-                    key={i}
-                    onClick={() => player && setSelectedPlayer(player)}
-                    className={`
-                      relative cursor-pointer transition-all duration-200
-                      ${player ? 'hover:scale-105' : ''}
-                    `}
-                  >
-                    <div className={`
-                      hex-slot relative
-                      ${player ? 'filled' : 'waiting'}
-                      ${isCurrentUser ? 'gold-glow' : ''}
-                    `}>
-                      {player ? (
-                        <div className="text-center">
-                          <div className="w-10 h-10 mx-auto rounded-full overflow-hidden border border-tft-teal/50">
-                            <img
-                              src={getIconUrl(player.profiles?.profile_icon_id || 29)}
-                              alt="icon"
-                              width={40}
-                              height={40}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = getIconUrl(29);
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-tft-gold/30 text-2xl">?</span>
-                      )}
-                    </div>
-                    {/* Player info below hex */}
-                    {player && (
-                      <div className="text-center mt-2">
-                        <p className="text-xs text-tft-gold-light truncate max-w-[70px]">
-                          {player.profiles?.riot_id?.split('#')[0] || 'Player'}
-                        </p>
-                        <p className={`text-xs ${tierColors[player.profiles?.tft_tier || 'UNRANKED']}`}>
-                          {formatRankDisplay(player.profiles?.tft_tier || 'UNRANKED', player.profiles?.tft_rank || '')}
-                        </p>
-                      </div>
-                    )}
-                    {isCurrentUser && (
-                      <div className="absolute -top-2 -right-2 w-4 h-4 bg-tft-gold rounded-full flex items-center justify-center">
-                        <span className="text-xs text-tft-dark">★</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Queue Counter */}
-            <div className="queue-counter rounded-lg mb-8">
-              <span className="text-2xl font-bold">{queuePlayers.length}</span>
-              <span className="text-tft-teal/70">/8 người</span>
-            </div>
-
-            {/* Join/Leave Button */}
-            {inQueue ? (
-              <button onClick={leaveQueue} className="btn-tft-secondary text-lg px-10">
-                ✕ Rời Hàng Chờ
-              </button>
-            ) : (
-              <button
-                onClick={joinQueue}
-                disabled={joining}
-                className="btn-tft-primary text-lg px-10 animate-glow-pulse"
-              >
-                {joining ? (
-                  <span className="flex items-center gap-2">
-                    <div className="loading-spinner w-5 h-5 border-2"></div>
-                    Đang vào...
-                  </span>
-                ) : (
-                  '🔍 VÀO HÀNG CHỜ'
-                )}
-              </button>
-            )}
-
-            {/* Create Custom Room Link */}
-            <div className="mt-6 text-center">
-              <Link 
-                href="/create-room" 
-                className="text-tft-teal hover:text-tft-teal/80 text-sm inline-flex items-center gap-2"
-              >
-                <span>🎮</span>
-                <span>Hoặc tạo phòng Custom với luật riêng</span>
-                <span>→</span>
-              </Link>
-            </div>
-          </>
-        )}
-      </main>
-
-      {/* Player Detail Modal */}
-      {selectedPlayer && (
-        <div 
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-          onClick={() => setSelectedPlayer(null)}
-        >
-          <div 
-            className="card-tft p-6 rounded-xl max-w-sm w-full mx-4 gold-glow"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-tft-gold/50">
-                <img
-                  src={getIconUrl(selectedPlayer.profiles?.profile_icon_id || 29)}
-                  alt="icon"
-                  width={64}
-                  height={64}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = getIconUrl(29);
-                  }}
-                />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-tft-gold-light">
-                  {selectedPlayer.profiles?.riot_id?.split('#')[0]}
-                </h3>
-                <p className="text-tft-gold/60 text-sm">
-                  #{selectedPlayer.profiles?.riot_id?.split('#')[1]}
-                </p>
-              </div>
-            </div>
-
-            {/* Rank Details */}
-            <div className="bg-tft-dark p-4 rounded-lg space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-tft-gold/70">Rank TFT</span>
-                <span className={`font-bold ${tierColors[selectedPlayer.profiles?.tft_tier || 'UNRANKED']}`}>
-                  {formatRankDisplay(
-                    selectedPlayer.profiles?.tft_tier || 'UNRANKED',
-                    selectedPlayer.profiles?.tft_rank || ''
-                  )}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-tft-gold/70">LP</span>
-                <span className="text-tft-gold-light">{selectedPlayer.profiles?.tft_lp || 0} LP</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-tft-gold/70">Thắng/Thua</span>
-                <span className="text-tft-gold-light">
-                  <span className="text-green-400">{selectedPlayer.profiles?.tft_wins || 0}W</span>
-                  {' / '}
-                  <span className="text-red-400">{selectedPlayer.profiles?.tft_losses || 0}L</span>
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-tft-gold/70">Tỉ lệ thắng</span>
-                <span className="text-tft-gold-light">
-                  {selectedPlayer.profiles?.tft_wins && selectedPlayer.profiles?.tft_losses
-                    ? Math.round(
-                        (selectedPlayer.profiles.tft_wins /
-                          (selectedPlayer.profiles.tft_wins + selectedPlayer.profiles.tft_losses)) *
-                          100
-                      )
-                    : 0}%
-                </span>
-              </div>
-            </div>
-
+        {/* Rooms Grid */}
+        {rooms.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">🏠</div>
+            <h3 className="text-xl text-tft-gold-light mb-2">Chưa có phòng nào</h3>
+            <p className="text-tft-gold/60 mb-6">Hãy tạo phòng đầu tiên!</p>
             <button
-              onClick={() => setSelectedPlayer(null)}
-              className="btn-tft-secondary w-full mt-6"
+              onClick={handleCreateRoom}
+              className="btn-primary px-8 py-3 text-lg"
             >
-              Đóng
+              ➕ Tạo Phòng Mới
             </button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rooms.map(room => {
+              const rules = parseRules(room.rules_text);
+              const isFull = (room.players?.length || 0) >= 8;
+              const isInRoom = room.players?.includes(user?.id || '');
 
-      <footer className="px-6 py-4 border-t border-tft-gold/10 text-center text-tft-gold/40 text-sm">
-        Real-time powered by Supabase
-      </footer>
+              return (
+                <div
+                  key={room.id}
+                  className={`
+                    card-tft rounded-xl overflow-hidden transition-all
+                    ${isFull ? 'opacity-60' : 'hover:scale-[1.02] cursor-pointer'}
+                    ${isInRoom ? 'ring-2 ring-tft-teal' : ''}
+                  `}
+                  onClick={() => !isFull && router.push(`/room/${room.id}`)}
+                >
+                  {/* Header */}
+                  <div className="flex items-center gap-3 p-4 border-b border-tft-gold/20">
+                    <img
+                      src={getIconUrl(room.host_profile?.profile_icon_id || 29)}
+                      alt="host"
+                      className="w-10 h-10 rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getIconUrl(29);
+                      }}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-tft-gold-light font-medium">
+                          {room.host_profile?.riot_id?.split('#')[0] || 'Host'}
+                        </span>
+                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">
+                          👑 Host
+                        </span>
+                      </div>
+                      <div className="text-xs text-tft-gold/60">
+                        {room.host_profile?.tft_tier || 'Unranked'}
+                      </div>
+                    </div>
+                    <div className={`
+                      text-sm font-bold px-3 py-1 rounded-full
+                      ${isFull ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}
+                    `}>
+                      {room.players?.length || 0}/8
+                    </div>
+                  </div>
+
+                  {/* Rules Preview */}
+                  <div className="p-4">
+                    <h4 className="text-tft-teal font-semibold mb-2 flex items-center gap-2">
+                      📜 Luật chơi ({rules.length})
+                    </h4>
+                    {rules.length > 0 ? (
+                      <ul className="space-y-1 text-sm text-tft-gold-light/80">
+                        {rules.slice(0, 3).map((rule, i) => (
+                          <li key={i} className="truncate">
+                            • {rule}
+                          </li>
+                        ))}
+                        {rules.length > 3 && (
+                          <li className="text-tft-gold/50 italic">
+                            +{rules.length - 3} luật khác...
+                          </li>
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-tft-gold/50 italic">
+                        Không có luật đặc biệt
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-4 pb-4">
+                    {isInRoom ? (
+                      <button className="w-full py-2 bg-tft-teal/20 text-tft-teal rounded-lg text-sm font-medium">
+                        ✓ Bạn đang trong phòng này
+                      </button>
+                    ) : isFull ? (
+                      <button disabled className="w-full py-2 bg-gray-600/50 text-gray-400 rounded-lg text-sm">
+                        Phòng đầy
+                      </button>
+                    ) : (
+                      <button className="w-full py-2 btn-primary rounded-lg text-sm">
+                        Vào Phòng →
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Agreement Status */}
+                  {room.players_agreed?.length > 0 && (
+                    <div className="px-4 pb-4 -mt-2">
+                      <div className="text-xs text-tft-gold/60">
+                        ✓ {room.players_agreed.length}/{room.players?.length || 0} đã đồng ý luật
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
