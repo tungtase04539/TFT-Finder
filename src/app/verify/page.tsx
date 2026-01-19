@@ -70,16 +70,30 @@ export default function VerifyPage() {
         return;
       }
 
+      // Use the EXACT gameName#tagLine from Riot API (not user input)
+      const correctRiotId = `${data.data.gameName}#${data.data.tagLine}`;
+
+      // Check if this Riot ID is banned
+      const supabase = createClient();
+      const { data: bannedRiotId } = await supabase
+        .from('banned_riot_ids')
+        .select('riot_id')
+        .eq('riot_id', correctRiotId)
+        .single();
+
+      if (bannedRiotId) {
+        setError('Riot ID này đã bị cấm vĩnh viễn do vi phạm nghiêm trọng quy định hệ thống.');
+        setLoading(false);
+        return;
+      }
+
       // Save original icon to compare later
       setOriginalIconId(data.data.profileIconId);
       setCurrentIconId(data.data.profileIconId);
       setPuuid(data.data.puuid);
 
-      // Use the EXACT gameName#tagLine from Riot API (not user input)
-      const correctRiotId = `${data.data.gameName}#${data.data.tagLine}`;
       setRiotId(correctRiotId); // Update input to show correct ID
 
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
@@ -122,9 +136,22 @@ export default function VerifyPage() {
 
       // Check if icon has CHANGED (any change = verified)
       if (newIconId !== originalIconId) {
+        // Double-check Riot ID is not banned before marking as verified
+        const supabase = createClient();
+        const { data: bannedRiotId } = await supabase
+          .from('banned_riot_ids')
+          .select('riot_id')
+          .eq('riot_id', riotId)
+          .single();
+
+        if (bannedRiotId) {
+          setError('Riot ID này đã bị cấm vĩnh viễn do vi phạm nghiêm trọng quy định hệ thống.');
+          setVerifyStatus('failed');
+          return;
+        }
+
         setVerifyStatus('success');
         
-        const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {

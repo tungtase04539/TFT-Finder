@@ -224,13 +224,13 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - **Validates: Requirements 12.4, 13.1**
 
 - [ ] 11. Ban System - Enforcement
-  - [-] 11.1 Create ban check middleware
+  - [x] 11.1 Create ban check middleware
     - Check if user is banned on every protected route
     - If banned and ban not expired, show ban message
     - If temporary ban expired, clear ban
     - _Requirements: 11.5, 15.1, 15.2, 15.3, 15.4, 15.5_
 
-  - [ ] 11.2 Update verification to check banned Riot IDs
+  - [-] 11.2 Update verification to check banned Riot IDs
     - Query banned_riot_ids table during verification
     - Reject verification if Riot ID is banned
     - Show "Riot ID đã bị cấm vĩnh viễn" message
