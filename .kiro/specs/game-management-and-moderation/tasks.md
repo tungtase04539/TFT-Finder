@@ -6,7 +6,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
 
 ## Tasks
 
-- [ ] 1. Database Migration - Add Required Tables and Columns
+- [x] 1. Database Migration - Add Required Tables and Columns
   - Create migration script for all new tables and columns
   - Add columns to profiles: role, ban_count, banned_until, win_count, total_games
   - Add columns to rooms: last_copy_action, game_detected_at
