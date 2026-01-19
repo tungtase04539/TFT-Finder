@@ -177,15 +177,32 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-3">
             <button
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-tft-teal hover:text-tft-teal/80 text-sm"
+              className="text-tft-teal hover:text-tft-teal/80 text-sm block w-full"
             >
               {isSignUp
                 ? 'Đã có tài khoản? Đăng nhập'
-                : 'Chưa có tài khoản? Đăng ký'}
+                : 'Chưa có tài khoản? Đăng ký nhanh'}
             </button>
+            
+            {!isSignUp && (
+              <>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px bg-tft-gold/20"></div>
+                  <span className="text-tft-gold/50 text-xs">hoặc</span>
+                  <div className="flex-1 h-px bg-tft-gold/20"></div>
+                </div>
+                
+                <Link
+                  href="/register"
+                  className="block text-tft-gold hover:text-tft-gold-light text-sm"
+                >
+                  Đăng ký với email verification (bảo mật hơn) →
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </main>

@@ -17,9 +17,33 @@ export async function GET(request: Request) {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('verified')
+          .select('verified, has_google, has_password, email')
           .eq('id', user.id)
           .single()
+        
+        // Detect auth method used
+        const identities = user.identities || []
+        const hasGoogleIdentity = identities.some(i => i.provider === 'google')
+        const hasPasswordIdentity = identities.some(i => i.provider === 'email')
+        
+        // Update profile flags if needed
+        const updates: any = {}
+        if (hasGoogleIdentity && !profile?.has_google) {
+          updates.has_google = true
+        }
+        if (hasPasswordIdentity && !profile?.has_password) {
+          updates.has_password = true
+        }
+        if (user.email && user.email !== profile?.email) {
+          updates.email = user.email
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', user.id)
+        }
         
         // If profile exists and verified, go to queue
         if (profile?.verified) {
@@ -31,6 +55,9 @@ export async function GET(request: Request) {
           await supabase.from('profiles').insert({
             id: user.id,
             verified: false,
+            has_google: hasGoogleIdentity,
+            has_password: hasPasswordIdentity,
+            email: user.email,
           })
         }
       }
