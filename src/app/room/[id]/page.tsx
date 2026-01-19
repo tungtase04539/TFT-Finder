@@ -10,6 +10,7 @@ import { debounce } from '@/lib/debounce';
 import { useMatchDetection } from '@/hooks/useMatchDetection';
 import { useCopyTracking } from '@/hooks/useCopyTracking';
 import { removeUserFromActiveRooms } from '@/lib/room-utils';
+import { removePlayersNotInGame } from '@/lib/game-detection';
 import CopyRiotIdButton from '@/components/CopyRiotIdButton';
 
 // Lazy load RoomChat component
@@ -50,6 +51,7 @@ interface Room {
   created_at: string;
   started_at: string | null;
   last_copy_action: string | null;
+  game_detected_at: string | null;
 }
 
 // Memoized PlayerList component
@@ -250,6 +252,8 @@ export default function RoomPage() {
   // Match detection state
   const [matchCompleted, setMatchCompleted] = useState(false);
   const [winner, setWinner] = useState<Profile | null>(null);
+  const [detectingGame, setDetectingGame] = useState(false);
+  const [detectionMessage, setDetectionMessage] = useState<string>('');
 
   const isHost = currentUser?.id === room?.host_id;
   const hasAgreed = room?.players_agreed?.includes(currentUser?.id || '');
@@ -326,12 +330,79 @@ export default function RoomPage() {
 
   // Auto-trigger game detection when shouldTriggerDetection = true
   useEffect(() => {
-    if (shouldTriggerDetection && !checking && !matchCompleted) {
+    if (shouldTriggerDetection && !checking && !matchCompleted && !detectingGame) {
       console.log('[ROOM] 3 minutes passed since last copy. Triggering game detection...');
-      // The useMatchDetection hook will automatically start checking
-      // We just need to ensure it's enabled (which it is when room.status = 'ready')
+      
+      const detectGame = async () => {
+        setDetectingGame(true);
+        setDetectionMessage('Đang kiểm tra ai đã vào game...');
+
+        try {
+          // Call detect-game-participants API
+          const response = await fetch('/api/detect-game-participants', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              roomId,
+              puuids: playerPuuids
+            })
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to detect game');
+          }
+
+          console.log('[ROOM] Game detection result:', result);
+          setDetectionMessage(result.message);
+
+          // If match found and there are players not in game, remove them
+          if (result.matchFound && result.playersNotInGame.length > 0) {
+            const removeResult = await removePlayersNotInGame(
+              roomId,
+              result.playersNotInGame
+            );
+
+            console.log('[ROOM] Remove players result:', removeResult);
+            setDetectionMessage(removeResult.message);
+
+            // If room still has enough players, update status to playing
+            if (removeResult.success) {
+              const supabase = createClient();
+              const { data: updatedRoom } = await supabase
+                .from('rooms')
+                .select('players')
+                .eq('id', roomId)
+                .single();
+
+              if (updatedRoom && updatedRoom.players.length >= 2) {
+                await supabase
+                  .from('rooms')
+                  .update({ status: 'playing' })
+                  .eq('id', roomId);
+              }
+            }
+          } else if (result.matchFound && result.playersNotInGame.length === 0) {
+            // All players in game, update status to playing
+            const supabase = createClient();
+            await supabase
+              .from('rooms')
+              .update({ status: 'playing' })
+              .eq('id', roomId);
+          }
+
+        } catch (error) {
+          console.error('[ROOM] Game detection error:', error);
+          setDetectionMessage('Lỗi khi kiểm tra game. Vui lòng thử lại.');
+        } finally {
+          setDetectingGame(false);
+        }
+      };
+
+      detectGame();
     }
-  }, [shouldTriggerDetection, checking, matchCompleted]);
+  }, [shouldTriggerDetection, checking, matchCompleted, detectingGame, roomId, playerPuuids]);
 
   const fetchRoomData = useCallback(async () => {
     const supabase = createClient();
@@ -360,7 +431,7 @@ export default function RoomPage() {
     // Get room data - select only needed fields
     const { data: roomData, error: roomError } = await supabase
       .from('rooms')
-      .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at, last_copy_action')
+      .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at, last_copy_action, game_detected_at')
       .eq('id', roomId)
       .single();
 
@@ -407,7 +478,7 @@ export default function RoomPage() {
       // Refresh room data
       const { data: updatedRoom } = await supabase
         .from('rooms')
-        .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at, last_copy_action')
+        .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at, last_copy_action, game_detected_at')
         .eq('id', roomId)
         .single();
 
@@ -749,9 +820,17 @@ export default function RoomPage() {
                       </span>
                     </div>
                     
-                    {shouldTriggerDetection ? (
-                      <div className="text-yellow-400 text-sm">
-                        ⚠️ Đã hết thời gian! Đang kiểm tra ai đã vào game...
+                    {shouldTriggerDetection || detectingGame ? (
+                      <div className="text-yellow-400 text-sm flex items-center gap-2">
+                        {detectingGame && (
+                          <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                        )}
+                        <span>
+                          {detectingGame 
+                            ? detectionMessage || 'Đang kiểm tra ai đã vào game...'
+                            : '⚠️ Đã hết thời gian! Đang kiểm tra ai đã vào game...'
+                          }
+                        </span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
