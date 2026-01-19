@@ -191,8 +191,15 @@ export default function RoomPage() {
     setAgreeing(false);
   };
 
-  const handleStartEditRules = () => {
+  const handleStartEditRules = async () => {
     if (!isHost || !room) return;
+    
+    const supabase = createClient();
+    await supabase
+      .from('rooms')
+      .update({ status: 'editing' })
+      .eq('id', roomId);
+    
     setEditRulesText(room.rules_text || '');
     setEditingRules(true);
   };
@@ -342,11 +349,13 @@ export default function RoomPage() {
           </h2>
           <div className={`inline-block px-4 py-1 rounded-full text-sm ${
             room.status === 'forming' ? 'bg-yellow-500/20 text-yellow-400' :
+            room.status === 'editing' ? 'bg-orange-500/20 text-orange-400' :
             room.status === 'ready' ? 'bg-green-500/20 text-green-400' :
             room.status === 'playing' ? 'bg-blue-500/20 text-blue-400' :
             'bg-gray-500/20 text-gray-400'
           }`}>
             {room.status === 'forming' && `⏳ Đang chờ đồng ý (${room.players_agreed?.length || 0}/${room.players?.length || 0})`}
+            {room.status === 'editing' && '✏️ Host đang sửa luật...'}
             {room.status === 'ready' && '✅ Sẵn sàng bắt đầu'}
             {room.status === 'playing' && '🎮 Đang chơi'}
           </div>
