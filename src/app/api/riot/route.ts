@@ -102,10 +102,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const [gameName, tagLine] = riotId.split("#");
+    console.log(`Looking up Riot ID: ${gameName}#${tagLine}`);
 
     // Step 1: Get PUUID from Riot ID using Account-V1
+    const accountUrl = `${ACCOUNT_API_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+    console.log('Account API URL:', accountUrl);
+    
     const accountResponse = await fetch(
-      `${ACCOUNT_API_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
+      accountUrl,
       {
         headers: {
           "X-Riot-Token": RIOT_API_KEY,
@@ -113,7 +117,12 @@ export async function GET(request: NextRequest) {
       },
     );
 
+    console.log('Account API Response Status:', accountResponse.status);
+
     if (!accountResponse.ok) {
+      const errorBody = await accountResponse.text();
+      console.log('Account API Error Body:', errorBody);
+      
       if (accountResponse.status === 404) {
         return NextResponse.json(
           { error: "Không tìm thấy Riot ID này. Kiểm tra lại tên#tag (phân biệt hoa thường)" },
@@ -124,6 +133,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           { error: "Quá nhiều yêu cầu, vui lòng thử lại sau 1 phút" },
           { status: 429 },
+        );
+      }
+      if (accountResponse.status === 403) {
+        return NextResponse.json(
+          { error: "API key hết hạn hoặc không có quyền. Liên hệ admin." },
+          { status: 403 },
         );
       }
       throw new Error(`Account API error: ${accountResponse.status}`);
