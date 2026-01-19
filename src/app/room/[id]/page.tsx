@@ -269,6 +269,9 @@ export default function RoomPage() {
                       src={getIconUrl(player.profile_icon_id || 29)}
                       alt="icon"
                       className="w-10 h-10 rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getIconUrl(29);
+                      }}
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">

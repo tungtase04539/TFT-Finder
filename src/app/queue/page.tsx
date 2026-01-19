@@ -355,12 +355,15 @@ export default function QueuePage() {
                       {player ? (
                         <div className="text-center">
                           <div className="w-10 h-10 mx-auto rounded-full overflow-hidden border border-tft-teal/50">
-                            <Image
+                            <img
                               src={getIconUrl(player.profiles?.profile_icon_id || 29)}
                               alt="icon"
                               width={40}
                               height={40}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = getIconUrl(29);
+                              }}
                             />
                           </div>
                         </div>
@@ -444,12 +447,15 @@ export default function QueuePage() {
           >
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-tft-gold/50">
-                <Image
+                <img
                   src={getIconUrl(selectedPlayer.profiles?.profile_icon_id || 29)}
                   alt="icon"
                   width={64}
                   height={64}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = getIconUrl(29);
+                  }}
                 />
               </div>
               <div>
