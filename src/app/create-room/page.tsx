@@ -53,6 +53,40 @@ export default function CreateRoomPage() {
     try {
       const supabase = createClient();
 
+      // Check if user already has an active room as host
+      const { data: existingRooms } = await supabase
+        .from('rooms')
+        .select('id')
+        .eq('host_id', user.id)
+        .in('status', ['forming', 'ready', 'playing']);
+
+      // Cancel any existing rooms hosted by this user
+      if (existingRooms && existingRooms.length > 0) {
+        await supabase
+          .from('rooms')
+          .update({ status: 'cancelled' })
+          .eq('host_id', user.id)
+          .in('status', ['forming', 'ready', 'playing']);
+      }
+
+      // Also remove user from any other rooms they're in
+      const { data: otherRooms } = await supabase
+        .from('rooms')
+        .select('id, players, players_agreed')
+        .contains('players', [user.id])
+        .in('status', ['forming', 'ready']);
+
+      if (otherRooms) {
+        for (const room of otherRooms) {
+          const newPlayers = room.players?.filter((id: string) => id !== user.id) || [];
+          const newAgreed = room.players_agreed?.filter((id: string) => id !== user.id) || [];
+          await supabase
+            .from('rooms')
+            .update({ players: newPlayers, players_agreed: newAgreed })
+            .eq('id', room.id);
+        }
+      }
+
       // Create room with host as first player
       const { data: room, error } = await supabase
         .from('rooms')

@@ -211,29 +211,24 @@ export default function RoomPage() {
     if (!currentUser || !room) return;
 
     const supabase = createClient();
-    
-    // Remove from players and players_agreed
-    const newPlayers = room.players?.filter(id => id !== currentUser.id) || [];
-    const newAgreed = room.players_agreed?.filter(id => id !== currentUser.id) || [];
 
-    await supabase
-      .from('rooms')
-      .update({ 
-        players: newPlayers,
-        players_agreed: newAgreed,
-      })
-      .eq('id', roomId);
-
-    // If host leaves, cancel the room or assign new host
-    if (isHost && newPlayers.length > 0) {
-      await supabase
-        .from('rooms')
-        .update({ host_id: newPlayers[0] })
-        .eq('id', roomId);
-    } else if (newPlayers.length === 0) {
+    if (isHost) {
+      // Host leaves = cancel entire room
       await supabase
         .from('rooms')
         .update({ status: 'cancelled' })
+        .eq('id', roomId);
+    } else {
+      // Regular player leaves - just remove from lists
+      const newPlayers = room.players?.filter(id => id !== currentUser.id) || [];
+      const newAgreed = room.players_agreed?.filter(id => id !== currentUser.id) || [];
+
+      await supabase
+        .from('rooms')
+        .update({ 
+          players: newPlayers,
+          players_agreed: newAgreed,
+        })
         .eq('id', roomId);
     }
 

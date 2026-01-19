@@ -133,9 +133,14 @@ CREATE POLICY "Authenticated users can create rooms"
   ON public.rooms FOR INSERT 
   WITH CHECK (auth.uid() = host_id);
 
-CREATE POLICY "Players in room can update room" 
+-- Allow players to update room (includes joining forming rooms)
+CREATE POLICY "Authenticated users can update forming rooms" 
   ON public.rooms FOR UPDATE 
-  USING (auth.uid() = ANY(players) OR auth.uid() = host_id);
+  USING (
+    status = 'forming' OR 
+    auth.uid() = ANY(players) OR 
+    auth.uid() = host_id
+  );
 
 -- Room messages policies
 CREATE POLICY "Users can view room messages" 
