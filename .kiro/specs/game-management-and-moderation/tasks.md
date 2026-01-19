@@ -247,7 +247,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 11.5, 15.5_
 
 - [ ] 12. Admin Dashboard - Ban Management
-  - [-] 12.1 Create BanList component
+  - [x] 12.1 Create BanList component
     - Display all active bans
     - Show user name, Riot ID, ban type, ban date
     - Show time remaining for temporary bans
@@ -255,14 +255,14 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Unban button for each ban
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6_
 
-  - [-] 12.2 Create API route /api/admin/unban
+  - [x] 12.2 Create API route /api/admin/unban
     - Verify admin role
     - Remove ban record
     - Reset user's ban_count
     - Remove Riot ID from banned list if permanent ban
     - _Requirements: 14.6_
 
-  - [-] 12.3 Integrate ban management into dashboard
+  - [x] 12.3 Integrate ban management into dashboard
     - Display BanList component
     - Handle unban action
     - Refresh ban list after unban
@@ -275,14 +275,14 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 14.6_
 
 - [ ] 13. User Ban Status Display
-  - [ ] 13.1 Create BanStatusCard component
+  - [-] 13.1 Create BanStatusCard component
     - Display ban type (24h or permanent)
     - Show time remaining for temporary bans
     - Show violation types that led to ban
     - Show ban date
     - _Requirements: 15.1, 15.2, 15.3, 15.4_
 
-  - [ ] 13.2 Integrate ban status into profile page
+  - [-] 13.2 Integrate ban status into profile page
     - Display BanStatusCard if user is banned
     - Show prominent warning
     - _Requirements: 15.1, 15.2, 15.3, 15.4_

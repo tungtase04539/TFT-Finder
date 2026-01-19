@@ -8,9 +8,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { checkBanStatus } from '@/lib/ban-middleware';
 import AuthMethodCard from '@/components/profile/AuthMethodCard';
 import CreatePasswordModal from '@/components/auth/CreatePasswordModal';
 import LinkGoogleModal from '@/components/auth/LinkGoogleModal';
+import BanStatusCard from '@/components/BanStatusCard';
 
 interface Profile {
   id: string;
@@ -20,16 +22,61 @@ interface Profile {
   has_google: boolean;
 }
 
+interface BanInfo {
+  isBanned: boolean;
+  banType: 'temporary' | 'permanent' | null;
+  bannedUntil: string | null;
+  banReason: string | null;
+  violationTypes?: string[];
+  banDate?: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [showLinkGoogle, setShowLinkGoogle] = useState(false);
+  const [banInfo, setBanInfo] = useState<BanInfo | null>(null);
 
   useEffect(() => {
     loadProfile();
+    loadBanStatus();
   }, []);
+
+  const loadBanStatus = async () => {
+    const status = await checkBanStatus();
+    if (status.isBanned) {
+      // Get additional ban info from database
+      const supabase = createClient();
+      const { data: ban } = await supabase
+        .from('bans')
+        .select(`
+          created_at,
+          report:reports!report_id(violation_types)
+        `)
+        .eq('user_id', status.userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      // Extract violation types from report (Supabase returns single object, not array)
+      let violationTypes: string[] = [];
+      if (ban?.report) {
+        const report = ban.report as any;
+        violationTypes = report.violation_types || [];
+      }
+
+      setBanInfo({
+        isBanned: true,
+        banType: status.banType,
+        bannedUntil: status.bannedUntil,
+        banReason: status.banReason,
+        violationTypes,
+        banDate: ban?.created_at
+      });
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -123,6 +170,17 @@ export default function ProfilePage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="space-y-8">
+          {/* Ban Status - Show if user is banned */}
+          {banInfo?.isBanned && banInfo.banType && (
+            <BanStatusCard
+              banType={banInfo.banType}
+              bannedUntil={banInfo.bannedUntil}
+              banReason={banInfo.banReason}
+              violationTypes={banInfo.violationTypes}
+              banDate={banInfo.banDate}
+            />
+          )}
+
           {/* Account Info */}
           <div className="bg-[#0f1923] border border-[#1e2328] rounded-lg p-6">
             <h2 className="text-xl font-bold text-[#f0e6d2] mb-4">
