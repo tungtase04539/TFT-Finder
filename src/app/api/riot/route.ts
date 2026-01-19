@@ -116,8 +116,14 @@ export async function GET(request: NextRequest) {
     if (!accountResponse.ok) {
       if (accountResponse.status === 404) {
         return NextResponse.json(
-          { error: "Không tìm thấy Riot ID này" },
+          { error: "Không tìm thấy Riot ID này. Kiểm tra lại tên#tag (phân biệt hoa thường)" },
           { status: 404 },
+        );
+      }
+      if (accountResponse.status === 429) {
+        return NextResponse.json(
+          { error: "Quá nhiều yêu cầu, vui lòng thử lại sau 1 phút" },
+          { status: 429 },
         );
       }
       throw new Error(`Account API error: ${accountResponse.status}`);
@@ -171,7 +177,7 @@ export async function GET(request: NextRequest) {
 
     if (!summonerData) {
       return NextResponse.json(
-        { error: "Tài khoản này chưa chơi LOL/TFT trên server VN" },
+        { error: "Tài khoản Riot này chưa chơi LOL hoặc TFT trên server Việt Nam. Vui lòng sử dụng tài khoản đã chơi trên VN." },
         { status: 404 },
       );
     }
