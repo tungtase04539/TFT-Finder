@@ -230,7 +230,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - If temporary ban expired, clear ban
     - _Requirements: 11.5, 15.1, 15.2, 15.3, 15.4, 15.5_
 
-  - [-] 11.2 Update verification to check banned Riot IDs
+  - [x] 11.2 Update verification to check banned Riot IDs
     - Query banned_riot_ids table during verification
     - Reject verification if Riot ID is banned
     - Show "Riot ID đã bị cấm vĩnh viễn" message
@@ -247,7 +247,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 11.5, 15.5_
 
 - [ ] 12. Admin Dashboard - Ban Management
-  - [ ] 12.1 Create BanList component
+  - [-] 12.1 Create BanList component
     - Display all active bans
     - Show user name, Riot ID, ban type, ban date
     - Show time remaining for temporary bans
@@ -255,14 +255,14 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Unban button for each ban
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6_
 
-  - [ ] 12.2 Create API route /api/admin/unban
+  - [-] 12.2 Create API route /api/admin/unban
     - Verify admin role
     - Remove ban record
     - Reset user's ban_count
     - Remove Riot ID from banned list if permanent ban
     - _Requirements: 14.6_
 
-  - [ ] 12.3 Integrate ban management into dashboard
+  - [-] 12.3 Integrate ban management into dashboard
     - Display BanList component
     - Handle unban action
     - Refresh ban list after unban
