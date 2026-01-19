@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS public.rooms (
   players_agreed UUID[] DEFAULT '{}',  -- Players who agreed to rules
   lobby_code TEXT,
   host_id UUID REFERENCES public.profiles(id),
+  max_players INTEGER DEFAULT 8 CHECK (max_players >= 2 AND max_players <= 8),  -- Host can set max players
   
   -- Custom Rules (text-based, each line = 1 rule)
   rules_text TEXT,                     -- Host writes rules, newline separated
@@ -199,3 +200,6 @@ CREATE INDEX IF NOT EXISTS idx_room_messages_room_created ON public.room_message
 -- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS tft_wins INTEGER DEFAULT 0;
 -- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS tft_losses INTEGER DEFAULT 0;
 -- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS tft_rank_updated_at TIMESTAMPTZ;
+
+-- Add max_players column to existing rooms table
+-- ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS max_players INTEGER DEFAULT 8 CHECK (max_players >= 2 AND max_players <= 8);

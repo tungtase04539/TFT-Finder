@@ -40,6 +40,7 @@ interface Room {
   lobby_code: string | null;
   host_id: string;
   rules_text: string | null;
+  max_players: number;
   created_at: string;
   started_at: string | null;
 }
@@ -48,14 +49,23 @@ interface Room {
 const PlayerList = memo(({ 
   players, 
   room, 
-  currentUserId, 
-  getIconUrl 
+  currentUserId,
+  isHost,
+  getIconUrl,
+  onCloseSlot,
+  onOpenSlot
 }: { 
   players: Profile[];
   room: Room;
   currentUserId: string;
+  isHost: boolean;
   getIconUrl: (iconId: number) => string;
+  onCloseSlot: () => void;
+  onOpenSlot: () => void;
 }) => {
+  const maxPlayers = room.max_players || 8;
+  const emptySlots = maxPlayers - players.length;
+  
   return (
     <>
       {players.map(player => {
@@ -105,12 +115,40 @@ const PlayerList = memo(({
       })}
       
       {/* Empty slots */}
-      {[...Array(8 - players.length)].map((_, i) => (
+      {[...Array(emptySlots)].map((_, i) => (
         <div key={`empty-${i}`} className="flex items-center gap-3 p-3 rounded-lg bg-tft-dark-secondary/50 border-2 border-dashed border-tft-gold/20">
           <div className="w-10 h-10 rounded-lg bg-tft-dark flex items-center justify-center">
             <span className="text-tft-gold/30">?</span>
           </div>
-          <span className="text-tft-gold/30">Đang chờ...</span>
+          <span className="flex-1 text-tft-gold/30">Đang chờ...</span>
+          {isHost && room.status === 'forming' && emptySlots > 0 && (
+            <button
+              onClick={onCloseSlot}
+              className="text-xs text-red-400 hover:text-red-300 px-2 py-1 border border-red-500/30 rounded"
+              title="Đóng slot này"
+            >
+              ✕ Đóng
+            </button>
+          )}
+        </div>
+      ))}
+      
+      {/* Closed slots */}
+      {[...Array(8 - maxPlayers)].map((_, i) => (
+        <div key={`closed-${i}`} className="flex items-center gap-3 p-3 rounded-lg bg-red-500/10 border-2 border-red-500/30">
+          <div className="w-10 h-10 rounded-lg bg-red-900/30 flex items-center justify-center">
+            <span className="text-red-400">🔒</span>
+          </div>
+          <span className="flex-1 text-red-400/60">Slot đã đóng</span>
+          {isHost && room.status === 'forming' && (
+            <button
+              onClick={onOpenSlot}
+              className="text-xs text-tft-teal hover:text-tft-teal/80 px-2 py-1 border border-tft-teal/30 rounded"
+              title="Mở lại slot"
+            >
+              Mở
+            </button>
+          )}
         </div>
       ))}
     </>
@@ -197,7 +235,8 @@ export default function RoomPage() {
 
   const isHost = currentUser?.id === room?.host_id;
   const hasAgreed = room?.players_agreed?.includes(currentUser?.id || '');
-  const allAgreed = room?.players?.length === room?.players_agreed?.length && room?.players?.length === 8;
+  const maxPlayers = room?.max_players || 8;
+  const allAgreed = room?.players?.length === room?.players_agreed?.length && room?.players?.length === maxPlayers;
 
   // Parse rules from text - memoized
   const rules = useMemo(() => 
@@ -236,7 +275,7 @@ export default function RoomPage() {
     // Get room data - select only needed fields
     const { data: roomData, error: roomError } = await supabase
       .from('rooms')
-      .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, created_at, started_at')
+      .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at')
       .eq('id', roomId)
       .single();
 
@@ -247,9 +286,10 @@ export default function RoomPage() {
     }
 
     // Auto-join room if not already in and room is not full
+    const maxPlayers = roomData.max_players || 8;
     if (roomData.status === 'forming' && 
         !roomData.players?.includes(user.id) && 
-        (roomData.players?.length || 0) < 8) {
+        (roomData.players?.length || 0) < maxPlayers) {
       
       // Remove from queue first
       await supabase
@@ -267,7 +307,7 @@ export default function RoomPage() {
       // Refresh room data
       const { data: updatedRoom } = await supabase
         .from('rooms')
-        .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, created_at, started_at')
+        .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at')
         .eq('id', roomId)
         .single();
 
@@ -333,12 +373,13 @@ export default function RoomPage() {
     
     const supabase = createClient();
     const newAgreed = [...(room.players_agreed || []), currentUser.id];
+    const maxPlayers = room.max_players || 8;
 
     await supabase
       .from('rooms')
       .update({ 
         players_agreed: newAgreed,
-        ...(newAgreed.length === 8 ? { status: 'ready', started_at: new Date().toISOString() } : {})
+        ...(newAgreed.length === maxPlayers ? { status: 'ready', started_at: new Date().toISOString() } : {})
       })
       .eq('id', roomId);
 
@@ -457,6 +498,48 @@ export default function RoomPage() {
     alert('Đã copy link phòng!');
   }, []);
 
+  const handleCloseSlot = useCallback(async () => {
+    if (!isHost || !room) return;
+    
+    const currentMax = room.max_players || 8;
+    const currentPlayers = room.players?.length || 0;
+    
+    // Can't close if it would kick existing players
+    if (currentMax - 1 < currentPlayers) {
+      alert('Không thể đóng slot khi đã có người chơi!');
+      return;
+    }
+    
+    // Minimum 2 players
+    if (currentMax <= 2) {
+      alert('Phải có ít nhất 2 slot!');
+      return;
+    }
+
+    const supabase = createClient();
+    await supabase
+      .from('rooms')
+      .update({ max_players: currentMax - 1 })
+      .eq('id', roomId);
+  }, [isHost, room, roomId]);
+
+  const handleOpenSlot = useCallback(async () => {
+    if (!isHost || !room) return;
+    
+    const currentMax = room.max_players || 8;
+    
+    // Maximum 8 players
+    if (currentMax >= 8) {
+      return;
+    }
+
+    const supabase = createClient();
+    await supabase
+      .from('rooms')
+      .update({ max_players: currentMax + 1 })
+      .eq('id', roomId);
+  }, [isHost, room, roomId]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -537,14 +620,17 @@ export default function RoomPage() {
           {/* Left Column: Players */}
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-tft-gold flex items-center gap-2">
-              👥 Người chơi ({players.length}/8)
+              👥 Người chơi ({players.length}/{room.max_players || 8})
             </h3>
             <div className="space-y-2">
               <PlayerList 
                 players={players}
                 room={room}
                 currentUserId={currentUser?.id || ''}
+                isHost={isHost}
                 getIconUrl={getIconUrl}
+                onCloseSlot={handleCloseSlot}
+                onOpenSlot={handleOpenSlot}
               />
             </div>
 
