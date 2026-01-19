@@ -70,7 +70,7 @@ const RoomCard = memo(({
           alt="host"
           width={40}
           height={40}
-          className="rounded-lg"
+          className="rounded-full"
           unoptimized
         />
         <div className="flex-1">
@@ -279,7 +279,7 @@ export default function LobbyBrowserPage() {
               alt="icon"
               width={32}
               height={32}
-              className="rounded-lg"
+              className="rounded-full"
               unoptimized
             />
             <span className="text-tft-gold-light text-sm">{user?.riot_id}</span>

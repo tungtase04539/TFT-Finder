@@ -74,7 +74,7 @@ const PlayerList = memo(({
               alt="icon"
               width={40}
               height={40}
-              className="rounded-lg"
+              className="rounded-full"
               unoptimized
             />
             <div className="flex-1">

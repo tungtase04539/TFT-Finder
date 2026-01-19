@@ -214,7 +214,7 @@ const MessageList = memo(({
               alt="avatar"
               width={32}
               height={32}
-              className="rounded-lg flex-shrink-0"
+              className="rounded-full flex-shrink-0"
               unoptimized
             />
             <div className={`max-w-[70%] ${isOwn ? 'text-right' : ''}`}>
