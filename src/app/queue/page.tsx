@@ -259,7 +259,7 @@ export default function QueuePage() {
   };
 
   const getIconUrl = (iconId: number) =>
-    `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${iconId || 29}.png`;
+    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`;
 
   const formatRankDisplay = (tier: string, rank: string) => {
     if (!tier || tier === 'UNRANKED') return tierNames['UNRANKED'];

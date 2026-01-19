@@ -159,7 +159,7 @@ export default function VerifyPage() {
   };
 
   const getIconUrl = (iconId: number) => 
-    `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${iconId}.png`;
+    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId}.png`;
 
   if (checking) {
     return (

@@ -172,7 +172,7 @@ export default function RoomPage() {
   };
 
   const getIconUrl = (iconId: number) =>
-    `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${iconId || 29}.png`;
+    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`;
 
   const copyRoomLink = () => {
     navigator.clipboard.writeText(window.location.href);
