@@ -375,7 +375,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Test statistics formatting
     - _Requirements: 18.3, 18.4, 18.5_
 
-- [ ] 17. Checkpoint - Test All Features
+- [x] 17. Checkpoint - Test All Features
   - Ensure all tests pass
   - Test copy → detect → kick flow end-to-end
   - Test report → admin review → ban flow end-to-end
