@@ -174,7 +174,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 9.2, 9.3_
 
 - [ ] 9. Admin Dashboard - Report Management
-  - [ ] 9.1 Create ReportCard component
+  - [x] 9.1 Create ReportCard component
     - Display reporter name, reported user name
     - Display violation types with Vietnamese labels
     - Display description text
@@ -182,13 +182,13 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Approve and Reject buttons
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-  - [ ] 9.2 Create BanModal component
+  - [x] 9.2 Create BanModal component
     - Show user's current ban_count
     - Suggest ban type based on ban_count (0 → 24h, >=1 → permanent)
     - Confirm button to apply ban
     - _Requirements: 11.1, 11.2, 11.3, 12.1, 12.2_
 
-  - [ ] 9.3 Integrate report management into dashboard
+  - [x] 9.3 Integrate report management into dashboard
     - Display list of pending reports
     - Use ReportCard for each report
     - Open BanModal when approve clicked
@@ -202,7 +202,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 10.5, 10.6, 10.7_
 
 - [ ] 10. Ban System - Backend
-  - [ ] 10.1 Create API route /api/admin/apply-ban
+  - [x] 10.1 Create API route /api/admin/apply-ban
     - Verify admin role
     - Get user's current ban_count
     - If temporary: set banned_until = now + 24 hours, ban_count++
