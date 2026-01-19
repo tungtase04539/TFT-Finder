@@ -42,6 +42,10 @@ export default function RoomPage() {
   // Per-rule agreement tracking
   const [checkedRules, setCheckedRules] = useState<Set<number>>(new Set());
   const [agreeing, setAgreeing] = useState(false);
+  
+  // Host rule editing
+  const [editingRules, setEditingRules] = useState(false);
+  const [editRulesText, setEditRulesText] = useState('');
 
   const isHost = currentUser?.id === room?.host_id;
   const hasAgreed = room?.players_agreed?.includes(currentUser?.id || '');
@@ -185,6 +189,37 @@ export default function RoomPage() {
       .eq('id', roomId);
 
     setAgreeing(false);
+  };
+
+  const handleStartEditRules = () => {
+    if (!isHost || !room) return;
+    setEditRulesText(room.rules_text || '');
+    setEditingRules(true);
+  };
+
+  const handleSaveRules = async () => {
+    if (!isHost || !room) return;
+
+    const supabase = createClient();
+    
+    // Save new rules and reset all agreements (except host)
+    await supabase
+      .from('rooms')
+      .update({ 
+        rules_text: editRulesText,
+        players_agreed: [currentUser?.id], // Only host remains agreed
+        status: 'forming',
+      })
+      .eq('id', roomId);
+
+    setEditingRules(false);
+    // Reset all players' checked rules
+    setCheckedRules(new Set());
+  };
+
+  const handleCancelEditRules = () => {
+    setEditingRules(false);
+    setEditRulesText('');
   };
 
   const handleUpdateLobbyCode = async () => {
@@ -418,11 +453,48 @@ export default function RoomPage() {
 
           {/* Right Column: Rules */}
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-tft-gold flex items-center gap-2">
-              📜 Luật chơi ({rules.length} luật)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-tft-gold flex items-center gap-2">
+                📜 Luật chơi ({rules.length} luật)
+              </h3>
+              {isHost && !editingRules && room.status === 'forming' && (
+                <button
+                  onClick={handleStartEditRules}
+                  className="text-sm text-tft-teal hover:text-tft-teal/80 flex items-center gap-1"
+                >
+                  ✏️ Sửa luật
+                </button>
+              )}
+            </div>
             
-            {rules.length > 0 ? (
+            {/* Editing Mode */}
+            {editingRules ? (
+              <div className="space-y-3">
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                  <span className="text-yellow-400 text-sm">⚠️ Đang chỉnh sửa - Mọi người phải đồng ý lại sau khi lưu</span>
+                </div>
+                <textarea
+                  value={editRulesText}
+                  onChange={(e) => setEditRulesText(e.target.value)}
+                  placeholder="Mỗi dòng = 1 luật..."
+                  className="input-tft w-full rounded-lg h-40 resize-none font-mono text-sm"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveRules}
+                    className="flex-1 btn-primary py-2"
+                  >
+                    💾 Lưu luật
+                  </button>
+                  <button
+                    onClick={handleCancelEditRules}
+                    className="px-4 py-2 bg-gray-600 text-gray-200 rounded-lg hover:bg-gray-500"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            ) : rules.length > 0 ? (
               <div className="space-y-2">
                 {rules.map((rule, i) => {
                   const isChecked = checkedRules.has(i) || hasAgreed;

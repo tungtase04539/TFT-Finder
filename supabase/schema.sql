@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS public.queue (
 -- Rooms table (with text-based custom rules)
 CREATE TABLE IF NOT EXISTS public.rooms (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  status TEXT DEFAULT 'forming' CHECK (status IN ('forming', 'ready', 'playing', 'completed', 'expired', 'cancelled')),
+  status TEXT DEFAULT 'forming' CHECK (status IN ('forming', 'editing', 'ready', 'playing', 'completed', 'expired', 'cancelled')),
   players UUID[] DEFAULT '{}',
   players_agreed UUID[] DEFAULT '{}',  -- Players who agreed to rules
   lobby_code TEXT,
