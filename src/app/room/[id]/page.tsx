@@ -11,8 +11,10 @@ import { useMatchDetection } from '@/hooks/useMatchDetection';
 import { useCopyTracking } from '@/hooks/useCopyTracking';
 import { removeUserFromActiveRooms } from '@/lib/room-utils';
 import { removePlayersNotInGame } from '@/lib/game-detection';
+import { checkBanStatus } from '@/lib/ban-middleware';
 import CopyRiotIdButton from '@/components/CopyRiotIdButton';
 import ReportButton from '@/components/ReportButton';
+import BanMessage from '@/components/BanMessage';
 
 // Lazy load RoomChat component
 const RoomChat = dynamic(() => import('@/components/RoomChat'), {
@@ -246,6 +248,39 @@ export default function RoomPage() {
   const [players, setPlayers] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [banStatus, setBanStatus] = useState<{
+    isBanned: boolean;
+    banType: 'temporary' | 'permanent' | null;
+    bannedUntil: string | null;
+    banReason: string | null;
+  } | null>(null);
+
+  // Check ban status on mount
+  useEffect(() => {
+    const checkBan = async () => {
+      const status = await checkBanStatus();
+      if (status.isBanned) {
+        setBanStatus({
+          isBanned: true,
+          banType: status.banType,
+          bannedUntil: status.bannedUntil,
+          banReason: status.banReason
+        });
+      }
+    };
+    checkBan();
+  }, []);
+
+  // Show ban message if user is banned
+  if (banStatus?.isBanned && banStatus.banType) {
+    return (
+      <BanMessage
+        banType={banStatus.banType}
+        bannedUntil={banStatus.bannedUntil}
+        banReason={banStatus.banReason}
+      />
+    );
+  }
   const [error, setError] = useState('');
   const [lobbyCode, setLobbyCode] = useState('');
   

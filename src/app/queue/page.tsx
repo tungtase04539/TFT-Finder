@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { debounce } from '@/lib/debounce';
+import { checkBanStatus } from '@/lib/ban-middleware';
+import BanMessage from '@/components/BanMessage';
 
 interface Room {
   id: string;
@@ -156,6 +158,39 @@ export default function LobbyBrowserPage() {
   const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [banStatus, setBanStatus] = useState<{
+    isBanned: boolean;
+    banType: 'temporary' | 'permanent' | null;
+    bannedUntil: string | null;
+    banReason: string | null;
+  } | null>(null);
+
+  // Check ban status on mount
+  useEffect(() => {
+    const checkBan = async () => {
+      const status = await checkBanStatus();
+      if (status.isBanned) {
+        setBanStatus({
+          isBanned: true,
+          banType: status.banType,
+          bannedUntil: status.bannedUntil,
+          banReason: status.banReason
+        });
+      }
+    };
+    checkBan();
+  }, []);
+
+  // Show ban message if user is banned
+  if (banStatus?.isBanned && banStatus.banType) {
+    return (
+      <BanMessage
+        banType={banStatus.banType}
+        bannedUntil={banStatus.bannedUntil}
+        banReason={banStatus.banReason}
+      />
+    );
+  }
 
   const fetchRooms = useCallback(async () => {
     const supabase = createClient();

@@ -5,12 +5,47 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { removeUserFromActiveRooms } from '@/lib/room-utils';
+import { checkBanStatus } from '@/lib/ban-middleware';
+import BanMessage from '@/components/BanMessage';
 
 export default function CreateRoomPage() {
   const router = useRouter();
   const [rulesText, setRulesText] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<{ id: string; riot_id: string } | null>(null);
+  const [banStatus, setBanStatus] = useState<{
+    isBanned: boolean;
+    banType: 'temporary' | 'permanent' | null;
+    bannedUntil: string | null;
+    banReason: string | null;
+  } | null>(null);
+
+  // Check ban status on mount
+  useEffect(() => {
+    const checkBan = async () => {
+      const status = await checkBanStatus();
+      if (status.isBanned) {
+        setBanStatus({
+          isBanned: true,
+          banType: status.banType,
+          bannedUntil: status.bannedUntil,
+          banReason: status.banReason
+        });
+      }
+    };
+    checkBan();
+  }, []);
+
+  // Show ban message if user is banned
+  if (banStatus?.isBanned && banStatus.banType) {
+    return (
+      <BanMessage
+        banType={banStatus.banType}
+        bannedUntil={banStatus.bannedUntil}
+        banReason={banStatus.banReason}
+      />
+    );
+  }
 
   useEffect(() => {
     const fetchUser = async () => {
