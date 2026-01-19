@@ -1,26 +1,298 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* TFT Theme Colors */
+  --tft-gold: #c8aa6e;
+  --tft-gold-light: #f0e6d2;
+  --tft-gold-dark: #785a28;
+  --tft-teal: #0ac8b9;
+  --tft-teal-dark: #005a56;
+  --tft-blue: #0a1428;
+  --tft-dark: #010a13;
+  --tft-dark-secondary: #1e2328;
+  --tft-purple: #9557bd;
+  --tft-pink: #e91e8c;
+
+  --background: var(--tft-dark);
+  --foreground: var(--tft-gold-light);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-tft-gold: var(--tft-gold);
+  --color-tft-gold-light: var(--tft-gold-light);
+  --color-tft-gold-dark: var(--tft-gold-dark);
+  --color-tft-teal: var(--tft-teal);
+  --color-tft-teal-dark: var(--tft-teal-dark);
+  --color-tft-blue: var(--tft-blue);
+  --color-tft-dark: var(--tft-dark);
+  --color-tft-dark-secondary: var(--tft-dark-secondary);
+  --color-tft-purple: var(--tft-purple);
+  --color-tft-pink: var(--tft-pink);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(
+    135deg,
+    var(--tft-dark) 0%,
+    var(--tft-blue) 50%,
+    var(--tft-dark) 100%
+  );
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* TFT Hexagon Pattern Background */
+.bg-hex-pattern {
+  background-image:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(200, 170, 110, 0.03) 0%,
+      transparent 50%
+    ),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L55 17.5 L55 42.5 L30 55 L5 42.5 L5 17.5 Z' fill='none' stroke='%23C8AA6E' stroke-opacity='0.05' stroke-width='1'/%3E%3C/svg%3E");
+  background-size:
+    100% 100%,
+    60px 60px;
+}
+
+/* Gold Glow Effect */
+.gold-glow {
+  box-shadow:
+    0 0 20px rgba(200, 170, 110, 0.3),
+    0 0 40px rgba(200, 170, 110, 0.1);
+}
+
+.gold-glow-strong {
+  box-shadow:
+    0 0 30px rgba(200, 170, 110, 0.5),
+    0 0 60px rgba(200, 170, 110, 0.2);
+}
+
+/* Teal Glow */
+.teal-glow {
+  box-shadow:
+    0 0 20px rgba(10, 200, 185, 0.3),
+    0 0 40px rgba(10, 200, 185, 0.1);
+}
+
+/* TFT Button Styles */
+.btn-tft-primary {
+  background: linear-gradient(
+    180deg,
+    var(--tft-gold) 0%,
+    var(--tft-gold-dark) 100%
+  );
+  color: var(--tft-dark);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 32px;
+  border: 2px solid var(--tft-gold-light);
+  clip-path: polygon(
+    8px 0,
+    100% 0,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    0 100%,
+    0 8px
+  );
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-tft-primary:hover {
+  background: linear-gradient(
+    180deg,
+    var(--tft-gold-light) 0%,
+    var(--tft-gold) 100%
+  );
+  box-shadow: 0 0 30px rgba(200, 170, 110, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-tft-secondary {
+  background: transparent;
+  color: var(--tft-teal);
+  font-weight: 600;
+  padding: 10px 24px;
+  border: 2px solid var(--tft-teal);
+  clip-path: polygon(
+    6px 0,
+    100% 0,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    0 100%,
+    0 6px
+  );
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-tft-secondary:hover {
+  background: rgba(10, 200, 185, 0.1);
+  box-shadow: 0 0 20px rgba(10, 200, 185, 0.3);
+}
+
+/* TFT Card Styles */
+.card-tft {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 35, 40, 0.9) 0%,
+    rgba(10, 20, 40, 0.9) 100%
+  );
+  border: 1px solid rgba(200, 170, 110, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+/* Input Styles */
+.input-tft {
+  background: rgba(10, 20, 40, 0.8);
+  border: 2px solid rgba(200, 170, 110, 0.3);
+  color: var(--tft-gold-light);
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+}
+
+.input-tft:focus {
+  outline: none;
+  border-color: var(--tft-gold);
+  box-shadow: 0 0 20px rgba(200, 170, 110, 0.2);
+}
+
+.input-tft::placeholder {
+  color: rgba(240, 230, 210, 0.4);
+}
+
+/* Hexagon Player Slot */
+.hex-slot {
+  width: 80px;
+  height: 92px;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 35, 40, 0.8) 0%,
+    rgba(10, 20, 40, 0.8) 100%
+  );
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  border: 2px solid rgba(200, 170, 110, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.hex-slot.filled {
+  border-color: var(--tft-teal);
+  background: linear-gradient(
+    135deg,
+    rgba(10, 200, 185, 0.2) 0%,
+    rgba(0, 90, 86, 0.3) 100%
+  );
+}
+
+.hex-slot.waiting {
+  animation: pulse-hex 2s infinite;
+}
+
+@keyframes pulse-hex {
+  0%,
+  100% {
+    border-color: rgba(200, 170, 110, 0.3);
+  }
+  50% {
+    border-color: rgba(200, 170, 110, 0.6);
+  }
+}
+
+/* Loading Animation */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(200, 170, 110, 0.2);
+  border-top-color: var(--tft-gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animations */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(200, 170, 110, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(200, 170, 110, 0.6);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Queue Counter */
+.queue-counter {
+  background: linear-gradient(
+    135deg,
+    rgba(10, 200, 185, 0.2) 0%,
+    rgba(0, 90, 86, 0.3) 100%
+  );
+  border: 1px solid var(--tft-teal);
+  padding: 8px 24px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--tft-teal);
+}
+
+/* Toast Notifications */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 35, 40, 0.95) 0%,
+    rgba(10, 20, 40, 0.95) 100%
+  );
+  border: 1px solid var(--tft-gold);
+  color: var(--tft-gold-light);
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
