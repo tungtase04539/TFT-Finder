@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { debounce } from '@/lib/debounce';
 import { useMatchDetection } from '@/hooks/useMatchDetection';
+import { useCopyTracking } from '@/hooks/useCopyTracking';
 import { removeUserFromActiveRooms } from '@/lib/room-utils';
 import CopyRiotIdButton from '@/components/CopyRiotIdButton';
 
@@ -25,6 +26,8 @@ const RoomChat = dynamic(() => import('@/components/RoomChat'), {
   ),
   ssr: false,
 });
+
+const THREE_MINUTES_MS = 3 * 60 * 1000; // 3 minutes in milliseconds
 
 interface Profile {
   id: string;
@@ -46,6 +49,7 @@ interface Room {
   max_players: number;
   created_at: string;
   started_at: string | null;
+  last_copy_action: string | null;
 }
 
 // Memoized PlayerList component
@@ -268,6 +272,19 @@ export default function RoomPage() {
     [players]
   );
 
+  // Copy action tracking - monitors copy actions and triggers detection after 3 minutes
+  const {
+    lastCopyTime,
+    timeSinceLastCopy,
+    shouldTriggerDetection,
+    timeUntilDetection
+  } = useCopyTracking({
+    roomId,
+    roomStatus: room?.status || '',
+    lastCopyAction: room?.last_copy_action || null,
+    enabled: room?.status === 'ready'
+  });
+
   // Match detection - enable when room is ready OR playing
   const { matchResult, checking } = useMatchDetection({
     puuids: playerPuuids,
@@ -307,6 +324,15 @@ export default function RoomPage() {
     }
   });
 
+  // Auto-trigger game detection when shouldTriggerDetection = true
+  useEffect(() => {
+    if (shouldTriggerDetection && !checking && !matchCompleted) {
+      console.log('[ROOM] 3 minutes passed since last copy. Triggering game detection...');
+      // The useMatchDetection hook will automatically start checking
+      // We just need to ensure it's enabled (which it is when room.status = 'ready')
+    }
+  }, [shouldTriggerDetection, checking, matchCompleted]);
+
   const fetchRoomData = useCallback(async () => {
     const supabase = createClient();
 
@@ -334,7 +360,7 @@ export default function RoomPage() {
     // Get room data - select only needed fields
     const { data: roomData, error: roomError } = await supabase
       .from('rooms')
-      .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at')
+      .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at, last_copy_action')
       .eq('id', roomId)
       .single();
 
@@ -381,7 +407,7 @@ export default function RoomPage() {
       // Refresh room data
       const { data: updatedRoom } = await supabase
         .from('rooms')
-        .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at')
+        .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, max_players, created_at, started_at, last_copy_action')
         .eq('id', roomId)
         .single();
 
@@ -710,21 +736,62 @@ export default function RoomPage() {
 
             {/* Match Detection Status */}
             {(room.status === 'ready' || room.status === 'playing') && !matchCompleted && (
-              <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  {checking && (
-                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                  )}
-                  <h4 className="text-blue-400 font-semibold">
-                    🎮 Đang theo dõi trận đấu...
-                  </h4>
+              <div className="space-y-3">
+                {/* Copy Action Countdown */}
+                {room.status === 'ready' && lastCopyTime && (
+                  <div className="p-4 bg-tft-teal/10 border border-tft-teal/30 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-tft-teal font-semibold">
+                        ⏱️ Thời gian mời người chơi
+                      </h4>
+                      <span className="text-xs text-tft-teal/60">
+                        Copy lần cuối: {new Date(lastCopyTime).toLocaleTimeString('vi-VN')}
+                      </span>
+                    </div>
+                    
+                    {shouldTriggerDetection ? (
+                      <div className="text-yellow-400 text-sm">
+                        ⚠️ Đã hết thời gian! Đang kiểm tra ai đã vào game...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-tft-dark rounded-full h-2 overflow-hidden">
+                          <div 
+                            className="bg-tft-teal h-full transition-all duration-1000"
+                            style={{ 
+                              width: `${((THREE_MINUTES_MS - timeUntilDetection) / THREE_MINUTES_MS) * 100}%` 
+                            }}
+                          />
+                        </div>
+                        <span className="text-tft-teal font-mono text-sm min-w-[60px] text-right">
+                          {Math.floor(timeUntilDetection / 60000)}:{String(Math.floor((timeUntilDetection % 60000) / 1000)).padStart(2, '0')}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-tft-teal/60 mt-2">
+                      Sau 3 phút không có copy, hệ thống sẽ tự động kiểm tra ai đã vào game
+                    </p>
+                  </div>
+                )}
+
+                {/* Game Detection Status */}
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    {checking && (
+                      <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    )}
+                    <h4 className="text-blue-400 font-semibold">
+                      🎮 Đang theo dõi trận đấu...
+                    </h4>
+                  </div>
+                  <p className="text-sm text-blue-300/80">
+                    Hệ thống sẽ tự động phát hiện khi trận đấu bắt đầu và kết thúc
+                  </p>
+                  <p className="text-xs text-blue-300/60 mt-1">
+                    (Kiểm tra mỗi 30 giây)
+                  </p>
                 </div>
-                <p className="text-sm text-blue-300/80">
-                  Hệ thống sẽ tự động phát hiện khi trận đấu bắt đầu và kết thúc
-                </p>
-                <p className="text-xs text-blue-300/60 mt-1">
-                  (Kiểm tra mỗi 30 giây)
-                </p>
               </div>
             )}
 
