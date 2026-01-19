@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { checkAdminAccess } from '@/lib/admin-middleware';
 import ReportCard from '@/components/admin/ReportCard';
 import BanModal from '@/components/admin/BanModal';
+import { toast } from '@/lib/toast';
 
 interface Report {
   id: string;
@@ -124,10 +125,10 @@ export default function AdminReportsPage() {
       setBanModalOpen(false);
       setSelectedReport(null);
 
-      alert('Đã áp dụng lệnh cấm thành công!');
+      toast.success('Đã áp dụng lệnh cấm thành công!');
     } catch (error) {
       console.error('[ADMIN REPORTS] Error applying ban:', error);
-      alert('Có lỗi xảy ra khi áp dụng lệnh cấm');
+      toast.error('Có lỗi xảy ra khi áp dụng lệnh cấm');
     }
   };
 
@@ -149,10 +150,10 @@ export default function AdminReportsPage() {
       // Refresh reports list
       await fetchReports();
       
-      alert('Đã từ chối báo cáo!');
+      toast.success('Đã từ chối báo cáo!');
     } catch (error) {
       console.error('[ADMIN REPORTS] Error rejecting report:', error);
-      alert('Có lỗi xảy ra khi từ chối báo cáo');
+      toast.error('Có lỗi xảy ra khi từ chối báo cáo');
     }
   };
 

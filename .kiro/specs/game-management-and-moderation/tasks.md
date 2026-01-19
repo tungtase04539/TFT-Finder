@@ -304,7 +304,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Store results in match_results table
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
 
-  - [ ] 14.2 Create scheduleMatchResultTracking function
+  - [x] 14.2 Create scheduleMatchResultTracking function
     - Store scheduled_check_at timestamp in rooms table (1 hour after game start)
     - Client polls to check if time reached
     - Call /api/track-match-result when time reached
@@ -326,22 +326,22 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - **Validates: Requirements 16.5**
 
 - [ ] 15. Achievement Display - Win Count Badge
-  - [ ] 15.1 Create WinCountBadge component
+  - [x] 15.1 Create WinCountBadge component
     - Display "{count} Top 1" format
     - Gold color for wins > 0
     - Different sizes (sm, md, lg)
     - _Requirements: 17.1, 17.2, 17.3_
 
-  - [ ] 15.2 Replace "Unranked" with win count in PlayerList
+  - [x] 15.2 Replace "Unranked" with win count in PlayerList
     - Use WinCountBadge instead of tft_tier display
     - Show below Riot ID
     - _Requirements: 17.4_
 
-  - [ ] 15.3 Add win count to queue page player list
+  - [x] 15.3 Add win count to queue page player list
     - Display WinCountBadge for each player
     - _Requirements: 17.5_
 
-  - [ ] 15.4 Add win count to profile page
+  - [x] 15.4 Add win count to profile page
     - Display prominently at top of profile
     - Use large size badge
     - _Requirements: 17.6_
@@ -353,14 +353,14 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 17.1, 17.2, 17.3_
 
 - [ ] 16. Achievement Display - Win Statistics
-  - [ ] 16.1 Create WinStatsCard component
+  - [x] 16.1 Create WinStatsCard component
     - Display total wins (win_count)
     - Display total games (total_games)
     - Calculate and display win rate percentage
     - Show "Chưa có trận đấu" if total_games = 0
     - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5_
 
-  - [ ] 16.2 Integrate WinStatsCard into profile page
+  - [x] 16.2 Integrate WinStatsCard into profile page
     - Display prominently on profile
     - Show statistics in cards
     - _Requirements: 18.1, 18.2, 18.3, 18.4_
@@ -385,13 +385,13 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
   - Ask the user if questions arise
 
 - [ ] 18. Final Integration and Polish
-  - [ ] 18.1 Add loading states to all async operations
+  - [x] 18.1 Add loading states to all async operations
     - Copy button loading
     - Report submission loading
     - Ban application loading
     - _Requirements: All_
 
-  - [ ] 18.2 Add error handling and user feedback
+  - [x] 18.2 Add error handling and user feedback
     - Toast notifications for success/error
     - Error messages for failed operations
     - Retry mechanisms for API failures

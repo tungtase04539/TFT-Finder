@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from '@/lib/toast';
 
 interface CopyRiotIdButtonProps {
   riotId: string;
@@ -24,13 +25,18 @@ export default function CopyRiotIdButton({ riotId, roomId, onCopy }: CopyRiotIdB
 
       // Record copy action timestamp to room
       const supabase = createClient();
-      await supabase
+      const { error } = await supabase
         .from('rooms')
         .update({ last_copy_action: new Date().toISOString() })
         .eq('id', roomId);
 
+      if (error) {
+        throw error;
+      }
+
       // Show success feedback
       setCopied(true);
+      toast.success(`Đã copy: ${riotId}`);
       
       // Call optional callback
       onCopy?.();
@@ -42,7 +48,7 @@ export default function CopyRiotIdButton({ riotId, roomId, onCopy }: CopyRiotIdB
 
     } catch (error) {
       console.error('[COPY_RIOT_ID] Error:', error);
-      alert('Không thể copy. Vui lòng thử lại.');
+      toast.error('Không thể copy. Vui lòng thử lại.');
     } finally {
       setCopying(false);
     }

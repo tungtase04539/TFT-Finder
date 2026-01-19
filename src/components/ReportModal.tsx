@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from '@/lib/toast';
 import Image from 'next/image';
 
 interface ReportModalProps {
@@ -96,6 +97,7 @@ export default function ReportModal({
     // Validate violation types
     if (violationTypes.length === 0) {
       setError('Vui lòng chọn ít nhất một loại vi phạm');
+      toast.warning('Vui lòng chọn ít nhất một loại vi phạm');
       return;
     }
 
@@ -128,6 +130,7 @@ export default function ReportModal({
       }
 
       console.log('[REPORT] Report submitted successfully:', result);
+      toast.success('Đã gửi báo cáo thành công! Admin sẽ xem xét.');
       
       // Call onSubmit callback
       onSubmit();
@@ -137,7 +140,9 @@ export default function ReportModal({
 
     } catch (err) {
       console.error('[REPORT] Submit error:', err);
-      setError(err instanceof Error ? err.message : 'Lỗi khi gửi báo cáo');
+      const errorMessage = err instanceof Error ? err.message : 'Lỗi khi gửi báo cáo';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

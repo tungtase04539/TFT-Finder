@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { checkAdminAccess } from '@/lib/admin-middleware';
 import BanList from '@/components/admin/BanList';
+import { toast } from '@/lib/toast';
 
 interface Ban {
   id: string;
@@ -73,14 +74,15 @@ export default function AdminBansPage() {
       const data = await response.json();
 
       if (response.ok) {
+        toast.success('Đã gỡ ban thành công!');
         // Refresh ban list
         fetchBans();
       } else {
-        alert(`Lỗi: ${data.error}`);
+        toast.error(`Lỗi: ${data.error}`);
       }
     } catch (error) {
       console.error('Error unbanning user:', error);
-      alert('Lỗi khi gỡ ban');
+      toast.error('Lỗi khi gỡ ban');
     }
   };
 
