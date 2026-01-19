@@ -6,15 +6,19 @@ Admin account cần được tạo thủ công trong Supabase Dashboard.
 
 ### Bước 1: Tạo User trong Supabase Dashboard
 
+⚠️ **QUAN TRỌNG**: Bạn PHẢI tạo user trong Supabase Dashboard trước khi chạy SQL script!
+
 1. Mở Supabase Dashboard: https://supabase.com/dashboard
 2. Chọn project của bạn
 3. Vào **Authentication** > **Users**
-4. Click **Add User** (hoặc **Invite**)
+4. Click **Add User** (nút màu xanh ở góc phải)
 5. Điền thông tin:
    - **Email**: `admin@admin.com`
    - **Password**: `Anhtung1998`
-   - **Auto Confirm User**: ✅ **YES** (quan trọng!)
+   - **Auto Confirm User**: ✅ **PHẢI TICK** (nếu không tick, user sẽ không thể login!)
 6. Click **Create User**
+
+✅ Sau bước này, bạn sẽ thấy user `admin@admin.com` trong danh sách Users với status "Confirmed"
 
 ### Bước 2: Chạy SQL Script để Set Admin Role
 
@@ -35,11 +39,14 @@ Script sẽ:
 Sau khi chạy script, bạn sẽ thấy output:
 
 ```
+Admin user found with ID: [uuid]
 Admin profile created/updated successfully!
 Email: admin@admin.com
 Password: Anhtung1998
 Role: admin
 ```
+
+Nếu thấy message "Admin user not found", có nghĩa là bạn chưa tạo user trong Dashboard (quay lại Bước 1).
 
 ### Bước 4: Test Admin Access
 
@@ -105,11 +112,22 @@ Tất cả admin API routes kiểm tra:
 
 ## Troubleshooting
 
+### "Invalid login credentials" error
+
+**Nguyên nhân**: User `admin@admin.com` chưa được tạo trong Supabase Dashboard
+
+**Giải pháp**:
+1. Vào Supabase Dashboard > Authentication > Users
+2. Kiểm tra xem có user `admin@admin.com` không
+3. Nếu không có, làm theo Bước 1 để tạo user
+4. Nếu có nhưng status là "Unconfirmed", xóa user đó và tạo lại với "Auto Confirm User" = YES
+
 ### Không thể đăng nhập
 
-1. Kiểm tra email/password đúng chưa
-2. Kiểm tra user đã được confirm chưa trong Supabase Dashboard
-3. Kiểm tra profile đã được tạo chưa
+1. Kiểm tra email/password đúng chưa: `admin@admin.com` / `Anhtung1998`
+2. Kiểm tra user đã được confirm chưa trong Supabase Dashboard (status phải là "Confirmed")
+3. Kiểm tra profile đã được tạo chưa (chạy SQL script ở Bước 2)
+4. Kiểm tra role = 'admin' trong profiles table
 
 ### Không thể truy cập dashboard
 

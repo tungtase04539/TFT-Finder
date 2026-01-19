@@ -1,6 +1,7 @@
 /**
  * Admin Middleware
  * Checks if user has admin role and is authenticated
+ * Admin accounts skip verification requirement
  */
 
 import { createClient } from '@/lib/supabase/client';
@@ -29,10 +30,10 @@ export async function checkAdminAccess(): Promise<AdminCheckResult> {
     };
   }
 
-  // Check admin role in profile
+  // Check admin role in profile (admin doesn't need to be verified)
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, verified')
     .eq('id', user.id)
     .single();
 
