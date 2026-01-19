@@ -105,23 +105,46 @@ export async function GET(request: NextRequest) {
     console.log(`Looking up Riot ID: "${gameName}"#"${tagLine}"`);
     console.log('GameName char codes:', [...gameName].map(c => c.charCodeAt(0)));
     
-    // Normalize unicode (NFC form)
+    // Normalize unicode (NFC form) - combines decomposed characters
     const normalizedGameName = gameName.normalize('NFC');
     const normalizedTagLine = tagLine.normalize('NFC');
-    console.log(`Normalized: "${normalizedGameName}"#"${normalizedTagLine}"`);
+    console.log(`Normalized NFC: "${normalizedGameName}"`);
 
-    // Step 1: Get PUUID from Riot ID using Account-V1
-    const accountUrl = `${ACCOUNT_API_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(normalizedGameName)}/${encodeURIComponent(normalizedTagLine)}`;
-    console.log('Account API URL:', accountUrl);
-    
-    const accountResponse = await fetch(
-      accountUrl,
-      {
-        headers: {
-          "X-Riot-Token": RIOT_API_KEY,
-        },
-      },
-    );
+    // Helper: Remove Vietnamese diacritics
+    const removeDiacritics = (str: string) => {
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    };
+
+    // Try with normalized name first
+    let searchGameName = normalizedGameName;
+    let searchTagLine = normalizedTagLine;
+    let retryWithoutDiacritics = false;
+
+    const tryFetch = async (gn: string, tl: string) => {
+      const url = `${ACCOUNT_API_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gn)}/${encodeURIComponent(tl)}`;
+      console.log('Trying URL:', url);
+      return fetch(url, {
+        headers: { "X-Riot-Token": RIOT_API_KEY },
+      });
+    };
+
+    // Step 1: Try with normalized name
+    let accountResponse = await tryFetch(searchGameName, searchTagLine);
+    console.log('First attempt status:', accountResponse.status);
+
+    // If not found, try without diacritics (fallback)
+    if (accountResponse.status === 404) {
+      const noDiacriticsGameName = removeDiacritics(normalizedGameName);
+      const noDiacriticsTagLine = removeDiacritics(normalizedTagLine);
+      
+      // Only retry if removing diacritics changed the string
+      if (noDiacriticsGameName !== normalizedGameName || noDiacriticsTagLine !== normalizedTagLine) {
+        console.log(`Retrying without diacritics: "${noDiacriticsGameName}"#"${noDiacriticsTagLine}"`);
+        accountResponse = await tryFetch(noDiacriticsGameName, noDiacriticsTagLine);
+        console.log('Retry status:', accountResponse.status);
+        retryWithoutDiacritics = true;
+      }
+    }
 
     console.log('Account API Response Status:', accountResponse.status);
 
