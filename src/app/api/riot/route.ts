@@ -102,10 +102,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const [gameName, tagLine] = riotId.split("#");
-    console.log(`Looking up Riot ID: ${gameName}#${tagLine}`);
+    console.log(`Looking up Riot ID: "${gameName}"#"${tagLine}"`);
+    console.log('GameName char codes:', [...gameName].map(c => c.charCodeAt(0)));
+    
+    // Normalize unicode (NFC form)
+    const normalizedGameName = gameName.normalize('NFC');
+    const normalizedTagLine = tagLine.normalize('NFC');
+    console.log(`Normalized: "${normalizedGameName}"#"${normalizedTagLine}"`);
 
     // Step 1: Get PUUID from Riot ID using Account-V1
-    const accountUrl = `${ACCOUNT_API_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+    const accountUrl = `${ACCOUNT_API_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(normalizedGameName)}/${encodeURIComponent(normalizedTagLine)}`;
     console.log('Account API URL:', accountUrl);
     
     const accountResponse = await fetch(
