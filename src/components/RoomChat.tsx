@@ -209,14 +209,16 @@ const MessageList = memo(({
             key={msg.id}
             className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}
           >
-            <Image
-              src={getIconUrl(msg.profile?.profile_icon_id || 29)}
-              alt="avatar"
-              width={32}
-              height={32}
-              className="rounded-full flex-shrink-0"
-              unoptimized
-            />
+            <div className="w-8 h-8 flex-shrink-0">
+              <Image
+                src={getIconUrl(msg.profile?.profile_icon_id || 29)}
+                alt="avatar"
+                width={32}
+                height={32}
+                className="rounded-full w-full h-full object-cover"
+                unoptimized
+              />
+            </div>
             <div className={`max-w-[70%] ${isOwn ? 'text-right' : ''}`}>
               <div className={`text-xs mb-1 ${isOwn ? 'text-tft-teal' : 'text-tft-gold/60'}`}>
                 {msg.profile?.riot_id?.split('#')[0] || 'Unknown'}
