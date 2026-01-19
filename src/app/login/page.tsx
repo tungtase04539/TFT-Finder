@@ -44,17 +44,23 @@ export default function LoginPage() {
         setError(error.message);
       } else {
         // Check if user has verified Riot account or is admin
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('verified, role')
           .single();
 
+        console.log('Profile data:', profile);
+        console.log('Profile error:', profileError);
+
         // Admin accounts don't need verification
         if (profile?.role === 'admin') {
+          console.log('Redirecting to admin dashboard');
           router.push('/admin/dashboard');
         } else if (profile?.verified) {
+          console.log('Redirecting to queue');
           router.push('/queue');
         } else {
+          console.log('Redirecting to verify');
           router.push('/verify');
         }
       }
