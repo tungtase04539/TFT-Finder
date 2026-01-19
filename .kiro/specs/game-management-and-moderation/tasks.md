@@ -294,7 +294,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 15.2, 15.3_
 
 - [ ] 14. Achievement Tracking - Match Result Recording
-  - [-] 14.1 Create API route /api/track-match-result
+  - [x] 14.1 Create API route /api/track-match-result
     - Accept roomId and matchId
     - Query Riot API for match details
     - Extract player placements
