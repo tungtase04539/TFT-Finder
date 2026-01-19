@@ -70,6 +70,11 @@ export default function RoomPage() {
       .eq('id', user.id)
       .single();
 
+    if (!profile?.verified) {
+      router.push('/verify');
+      return;
+    }
+
     setCurrentUser(profile);
 
     // Get room data
@@ -83,6 +88,36 @@ export default function RoomPage() {
       setError('Không tìm thấy phòng');
       setLoading(false);
       return;
+    }
+
+    // Auto-join room if not already in and room is not full
+    if (roomData.status === 'forming' && 
+        !roomData.players?.includes(user.id) && 
+        (roomData.players?.length || 0) < 8) {
+      
+      // Remove from queue first
+      await supabase
+        .from('queue')
+        .delete()
+        .eq('user_id', user.id);
+
+      // Add to room
+      const newPlayers = [...(roomData.players || []), user.id];
+      await supabase
+        .from('rooms')
+        .update({ players: newPlayers })
+        .eq('id', roomId);
+
+      // Refresh room data
+      const { data: updatedRoom } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single();
+
+      if (updatedRoom) {
+        roomData.players = updatedRoom.players;
+      }
     }
 
     setRoom(roomData);
@@ -171,6 +206,39 @@ export default function RoomPage() {
       .eq('id', roomId);
   };
 
+  const handleLeaveRoom = async () => {
+    if (!currentUser || !room) return;
+
+    const supabase = createClient();
+    
+    // Remove from players and players_agreed
+    const newPlayers = room.players?.filter(id => id !== currentUser.id) || [];
+    const newAgreed = room.players_agreed?.filter(id => id !== currentUser.id) || [];
+
+    await supabase
+      .from('rooms')
+      .update({ 
+        players: newPlayers,
+        players_agreed: newAgreed,
+      })
+      .eq('id', roomId);
+
+    // If host leaves, cancel the room or assign new host
+    if (isHost && newPlayers.length > 0) {
+      await supabase
+        .from('rooms')
+        .update({ host_id: newPlayers[0] })
+        .eq('id', roomId);
+    } else if (newPlayers.length === 0) {
+      await supabase
+        .from('rooms')
+        .update({ status: 'cancelled' })
+        .eq('id', roomId);
+    }
+
+    router.push('/queue');
+  };
+
   const getIconUrl = (iconId: number) =>
     `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`;
 
@@ -214,6 +282,12 @@ export default function RoomPage() {
           <h1 className="text-xl font-bold text-tft-gold">TFT FINDER</h1>
         </Link>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={handleLeaveRoom}
+            className="text-red-400 hover:text-red-300 text-sm border border-red-500/30 px-3 py-1 rounded"
+          >
+            🚪 Rời phòng
+          </button>
           <button 
             onClick={copyRoomLink}
             className="text-tft-teal hover:text-tft-teal/80 text-sm border border-tft-teal/30 px-3 py-1 rounded"
