@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCached, setCache } from "@/lib/cache";
 
 // Riot API Configuration
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
@@ -98,6 +99,18 @@ export async function GET(request: NextRequest) {
       { error: "Riot API key not configured" },
       { status: 500 },
     );
+  }
+
+  // Check cache first (5 minutes TTL)
+  const cacheKey = `riot:${riotId}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'X-Cache': 'HIT',
+      },
+    });
   }
 
   try {
@@ -262,7 +275,7 @@ export async function GET(request: NextRequest) {
         // Continue without TFT rank if API fails
       }
     }
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         puuid: accountData.puuid,
@@ -272,6 +285,16 @@ export async function GET(request: NextRequest) {
         summonerLevel: summonerData.summonerLevel,
         summonerId: summonerData.id,
         tftRank,
+      },
+    };
+    
+    // Cache for 5 minutes
+    setCache(cacheKey, responseData, 300);
+    
+    return NextResponse.json(responseData, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'X-Cache': 'MISS',
       },
     });
   } catch (error) {

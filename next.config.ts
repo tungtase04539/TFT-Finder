@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Performance optimizations
+  experimental: {
+    optimizePackageImports: ['@supabase/supabase-js', '@supabase/ssr'],
+  },
+  // Turbopack config (empty to silence warning)
+  turbopack: {},
 };
 
 export default nextConfig;

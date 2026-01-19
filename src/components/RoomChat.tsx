@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { throttle } from '@/lib/debounce';
 
 interface Message {
   id: string;
@@ -21,16 +23,22 @@ interface RoomChatProps {
   currentUserId: string;
 }
 
-export default function RoomChat({ roomId, currentUserId }: RoomChatProps) {
+function RoomChat({ roomId, currentUserId }: RoomChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
+
+  // Throttled scroll to avoid too many scroll operations
+  const throttledScrollToBottom = useMemo(
+    () => throttle(scrollToBottom, 300),
+    [scrollToBottom]
+  );
 
   const fetchMessages = useCallback(async () => {
     const supabase = createClient();
@@ -47,9 +55,9 @@ export default function RoomChat({ roomId, currentUserId }: RoomChatProps) {
 
     if (data) {
       setMessages(data);
-      setTimeout(scrollToBottom, 100);
+      setTimeout(throttledScrollToBottom, 100);
     }
-  }, [roomId]);
+  }, [roomId, throttledScrollToBottom]);
 
   useEffect(() => {
     fetchMessages();
@@ -79,7 +87,7 @@ export default function RoomChat({ roomId, currentUserId }: RoomChatProps) {
 
           if (data) {
             setMessages(prev => [...prev, data]);
-            setTimeout(scrollToBottom, 100);
+            setTimeout(throttledScrollToBottom, 100);
           }
         }
       )
@@ -88,9 +96,9 @@ export default function RoomChat({ roomId, currentUserId }: RoomChatProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, fetchMessages]);
+  }, [roomId, fetchMessages, throttledScrollToBottom]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || sending) return;
 
@@ -106,15 +114,15 @@ export default function RoomChat({ roomId, currentUserId }: RoomChatProps) {
 
     setNewMessage('');
     setSending(false);
-  };
+  }, [newMessage, sending, roomId, currentUserId]);
 
-  const formatTime = (dateStr: string) => {
+  const formatTime = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-  };
+  }, []);
 
-  const getIconUrl = (iconId: number) =>
-    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`;
+  const getIconUrl = useCallback((iconId: number) =>
+    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`, []);
 
   return (
     <div className="flex flex-col h-full bg-tft-dark rounded-lg border border-tft-gold/20 overflow-hidden">
@@ -136,49 +144,12 @@ export default function RoomChat({ roomId, currentUserId }: RoomChatProps) {
             Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyện!
           </div>
         ) : (
-          messages.map((msg) => {
-            const isSystem = msg.is_system;
-            const isOwn = msg.user_id === currentUserId;
-
-            if (isSystem) {
-              return (
-                <div key={msg.id} className="text-center text-xs text-tft-gold/50 italic">
-                  {msg.message}
-                </div>
-              );
-            }
-
-            return (
-              <div
-                key={msg.id}
-                className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}
-              >
-                <img
-                  src={getIconUrl(msg.profile?.profile_icon_id || 29)}
-                  alt="avatar"
-                  className="w-8 h-8 rounded-lg flex-shrink-0"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = getIconUrl(29);
-                  }}
-                />
-                <div className={`max-w-[70%] ${isOwn ? 'text-right' : ''}`}>
-                  <div className={`text-xs mb-1 ${isOwn ? 'text-tft-teal' : 'text-tft-gold/60'}`}>
-                    {msg.profile?.riot_id?.split('#')[0] || 'Unknown'}
-                    <span className="ml-2 text-tft-gold/40">{formatTime(msg.created_at)}</span>
-                  </div>
-                  <div className={`
-                    inline-block px-3 py-2 rounded-lg text-sm
-                    ${isOwn 
-                      ? 'bg-tft-teal/20 text-tft-teal' 
-                      : 'bg-tft-dark-secondary text-tft-gold-light'
-                    }
-                  `}>
-                    {msg.message}
-                  </div>
-                </div>
-              </div>
-            );
-          })
+          <MessageList 
+            messages={messages} 
+            currentUserId={currentUserId}
+            formatTime={formatTime}
+            getIconUrl={getIconUrl}
+          />
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -206,6 +177,71 @@ export default function RoomChat({ roomId, currentUserId }: RoomChatProps) {
     </div>
   );
 }
+
+// Memoized message list component
+const MessageList = memo(({ 
+  messages, 
+  currentUserId, 
+  formatTime, 
+  getIconUrl 
+}: { 
+  messages: Message[];
+  currentUserId: string;
+  formatTime: (dateStr: string) => string;
+  getIconUrl: (iconId: number) => string;
+}) => {
+  return (
+    <>
+      {messages.map((msg) => {
+        const isSystem = msg.is_system;
+        const isOwn = msg.user_id === currentUserId;
+
+        if (isSystem) {
+          return (
+            <div key={msg.id} className="text-center text-xs text-tft-gold/50 italic">
+              {msg.message}
+            </div>
+          );
+        }
+
+        return (
+          <div
+            key={msg.id}
+            className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}
+          >
+            <Image
+              src={getIconUrl(msg.profile?.profile_icon_id || 29)}
+              alt="avatar"
+              width={32}
+              height={32}
+              className="rounded-lg flex-shrink-0"
+              unoptimized
+            />
+            <div className={`max-w-[70%] ${isOwn ? 'text-right' : ''}`}>
+              <div className={`text-xs mb-1 ${isOwn ? 'text-tft-teal' : 'text-tft-gold/60'}`}>
+                {msg.profile?.riot_id?.split('#')[0] || 'Unknown'}
+                <span className="ml-2 text-tft-gold/40">{formatTime(msg.created_at)}</span>
+              </div>
+              <div className={`
+                inline-block px-3 py-2 rounded-lg text-sm
+                ${isOwn 
+                  ? 'bg-tft-teal/20 text-tft-teal' 
+                  : 'bg-tft-dark-secondary text-tft-gold-light'
+                }
+              `}>
+                {msg.message}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
+MessageList.displayName = 'MessageList';
+
+export default memo(RoomChat);
 
 // Helper function to send system message (join/leave)
 export async function sendSystemMessage(roomId: string, message: string) {

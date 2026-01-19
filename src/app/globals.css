@@ -44,7 +44,7 @@
 body {
   background: var(--tft-dark);
   color: var(--foreground);
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-inter), "Inter", "Segoe UI", system-ui, sans-serif;
   min-height: 100vh;
 }
 

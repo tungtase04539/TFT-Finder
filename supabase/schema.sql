@@ -178,6 +178,12 @@ CREATE INDEX IF NOT EXISTS idx_queue_joined_at ON public.queue(joined_at);
 CREATE INDEX IF NOT EXISTS idx_profiles_verified ON public.profiles(verified);
 CREATE INDEX IF NOT EXISTS idx_profiles_rank_updated ON public.profiles(tft_rank_updated_at);
 
+-- Performance optimization indexes
+CREATE INDEX IF NOT EXISTS idx_rooms_status_created ON public.rooms(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_rooms_host_id ON public.rooms(host_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_riot_id ON public.profiles(riot_id);
+CREATE INDEX IF NOT EXISTS idx_room_messages_room_created ON public.room_messages(room_id, created_at DESC);
+
 -- ============================================
 -- MIGRATION FOR EXISTING DATABASES
 -- Run these if you already have the old schema

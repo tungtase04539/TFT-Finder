@@ -1,10 +1,27 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
-import RoomChat, { sendSystemMessage } from '@/components/RoomChat';
+import { debounce } from '@/lib/debounce';
+
+// Lazy load RoomChat component
+const RoomChat = dynamic(() => import('@/components/RoomChat'), {
+  loading: () => (
+    <div className="flex flex-col h-full bg-tft-dark rounded-lg border border-tft-gold/20 overflow-hidden">
+      <div className="px-4 py-2 border-b border-tft-gold/20 bg-tft-dark-secondary">
+        <h4 className="text-tft-teal font-semibold">💬 Chat phòng</h4>
+      </div>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="loading-spinner"></div>
+      </div>
+    </div>
+  ),
+  ssr: false,
+});
 
 interface Profile {
   id: string;
@@ -26,6 +43,137 @@ interface Room {
   created_at: string;
   started_at: string | null;
 }
+
+// Memoized PlayerList component
+const PlayerList = memo(({ 
+  players, 
+  room, 
+  currentUserId, 
+  getIconUrl 
+}: { 
+  players: Profile[];
+  room: Room;
+  currentUserId: string;
+  getIconUrl: (iconId: number) => string;
+}) => {
+  return (
+    <>
+      {players.map(player => {
+        const agreed = room.players_agreed?.includes(player.id);
+        const isCurrentPlayer = player.id === currentUserId;
+        
+        return (
+          <div
+            key={player.id}
+            className={`flex items-center gap-3 p-3 rounded-lg ${
+              agreed ? 'bg-green-500/10 border border-green-500/30' : 'bg-tft-dark-secondary'
+            }`}
+          >
+            <Image
+              src={getIconUrl(player.profile_icon_id || 29)}
+              alt="icon"
+              width={40}
+              height={40}
+              className="rounded-lg"
+              unoptimized
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-tft-gold-light">{player.riot_id}</span>
+                {player.id === room.host_id && (
+                  <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">
+                    👑 Host
+                  </span>
+                )}
+                {isCurrentPlayer && (
+                  <span className="text-xs text-tft-teal">(Bạn)</span>
+                )}
+              </div>
+              <div className="text-xs text-tft-gold/60">
+                {player.tft_tier || 'Chưa rank'}
+              </div>
+            </div>
+            <div>
+              {agreed ? (
+                <span className="text-green-400 text-sm">✓ Đồng ý</span>
+              ) : (
+                <span className="text-yellow-400 text-sm">⏳ Chờ</span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      
+      {/* Empty slots */}
+      {[...Array(8 - players.length)].map((_, i) => (
+        <div key={`empty-${i}`} className="flex items-center gap-3 p-3 rounded-lg bg-tft-dark-secondary/50 border-2 border-dashed border-tft-gold/20">
+          <div className="w-10 h-10 rounded-lg bg-tft-dark flex items-center justify-center">
+            <span className="text-tft-gold/30">?</span>
+          </div>
+          <span className="text-tft-gold/30">Đang chờ...</span>
+        </div>
+      ))}
+    </>
+  );
+});
+
+PlayerList.displayName = 'PlayerList';
+
+// Memoized RulesList component
+const RulesList = memo(({ 
+  rules, 
+  checkedRules, 
+  hasAgreed, 
+  onToggleRule 
+}: { 
+  rules: string[];
+  checkedRules: Set<number>;
+  hasAgreed: boolean | undefined;
+  onToggleRule: (index: number) => void;
+}) => {
+  return (
+    <>
+      {rules.map((rule, i) => {
+        const isChecked = checkedRules.has(i) || hasAgreed;
+        
+        return (
+          <div
+            key={i}
+            onClick={() => !hasAgreed && onToggleRule(i)}
+            className={`
+              flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all
+              ${hasAgreed 
+                ? 'bg-green-500/10 border border-green-500/30' 
+                : isChecked 
+                  ? 'bg-tft-teal/10 border border-tft-teal/30' 
+                  : 'bg-tft-dark-secondary hover:bg-tft-dark'
+              }
+            `}
+          >
+            {/* Checkbox */}
+            <div className={`
+              w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-xs mt-0.5
+              ${isChecked 
+                ? 'bg-tft-teal text-tft-dark' 
+                : 'border border-tft-gold/50'
+              }
+            `}>
+              {isChecked && '✓'}
+            </div>
+            
+            {/* Rule text */}
+            <div className="flex-1">
+              <span className="text-tft-teal font-bold mr-2">{i + 1}.</span>
+              <span className="text-tft-gold-light">{rule}</span>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
+RulesList.displayName = 'RulesList';
 
 export default function RoomPage() {
   const params = useParams();
@@ -51,10 +199,13 @@ export default function RoomPage() {
   const hasAgreed = room?.players_agreed?.includes(currentUser?.id || '');
   const allAgreed = room?.players?.length === room?.players_agreed?.length && room?.players?.length === 8;
 
-  // Parse rules from text
-  const rules = room?.rules_text
-    ? room.rules_text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
-    : [];
+  // Parse rules from text - memoized
+  const rules = useMemo(() => 
+    room?.rules_text
+      ? room.rules_text.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+      : [],
+    [room?.rules_text]
+  );
 
   const allRulesChecked = rules.length === 0 || checkedRules.size === rules.length;
 
@@ -68,10 +219,10 @@ export default function RoomPage() {
       return;
     }
 
-    // Get user profile
+    // Get user profile - select only needed fields
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, riot_id, puuid, profile_icon_id, tft_tier, tft_rank, verified')
       .eq('id', user.id)
       .single();
 
@@ -82,10 +233,10 @@ export default function RoomPage() {
 
     setCurrentUser(profile);
 
-    // Get room data
+    // Get room data - select only needed fields
     const { data: roomData, error: roomError } = await supabase
       .from('rooms')
-      .select('*')
+      .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, created_at, started_at')
       .eq('id', roomId)
       .single();
 
@@ -116,7 +267,7 @@ export default function RoomPage() {
       // Refresh room data
       const { data: updatedRoom } = await supabase
         .from('rooms')
-        .select('*')
+        .select('id, status, players, players_agreed, lobby_code, host_id, rules_text, created_at, started_at')
         .eq('id', roomId)
         .single();
 
@@ -128,11 +279,11 @@ export default function RoomPage() {
     setRoom(roomData);
     setLobbyCode(roomData.lobby_code || '');
 
-    // Get all player profiles
+    // Get all player profiles - select only needed fields
     if (roomData.players?.length > 0) {
       const { data: playerProfiles } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, riot_id, puuid, profile_icon_id, tft_tier, tft_rank')
         .in('id', roomData.players);
 
       setPlayers(playerProfiles || []);
@@ -144,6 +295,9 @@ export default function RoomPage() {
   useEffect(() => {
     fetchRoomData();
 
+    // Debounced fetch to avoid too many updates
+    const debouncedFetch = debounce(fetchRoomData, 500);
+
     // Subscribe to room changes
     const supabase = createClient();
     const channel = supabase
@@ -152,7 +306,7 @@ export default function RoomPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
         () => {
-          fetchRoomData();
+          debouncedFetch();
         }
       )
       .subscribe();
@@ -162,7 +316,7 @@ export default function RoomPage() {
     };
   }, [roomId, fetchRoomData]);
 
-  const toggleRuleCheck = (index: number) => {
+  const toggleRuleCheck = useCallback((index: number) => {
     const newChecked = new Set(checkedRules);
     if (newChecked.has(index)) {
       newChecked.delete(index);
@@ -170,9 +324,9 @@ export default function RoomPage() {
       newChecked.add(index);
     }
     setCheckedRules(newChecked);
-  };
+  }, [checkedRules]);
 
-  const handleAgreeRules = async () => {
+  const handleAgreeRules = useCallback(async () => {
     if (!currentUser || !room || !allRulesChecked) return;
 
     setAgreeing(true);
@@ -189,9 +343,9 @@ export default function RoomPage() {
       .eq('id', roomId);
 
     setAgreeing(false);
-  };
+  }, [currentUser, room, allRulesChecked, roomId]);
 
-  const handleStartEditRules = async () => {
+  const handleStartEditRules = useCallback(async () => {
     if (!isHost || !room) return;
     
     const supabase = createClient();
@@ -202,9 +356,9 @@ export default function RoomPage() {
     
     setEditRulesText(room.rules_text || '');
     setEditingRules(true);
-  };
+  }, [isHost, room, roomId]);
 
-  const handleSaveRules = async () => {
+  const handleSaveRules = useCallback(async () => {
     if (!isHost || !room) return;
 
     const supabase = createClient();
@@ -222,14 +376,14 @@ export default function RoomPage() {
     setEditingRules(false);
     // Reset all players' checked rules
     setCheckedRules(new Set());
-  };
+  }, [isHost, room, editRulesText, currentUser?.id, roomId]);
 
-  const handleCancelEditRules = () => {
+  const handleCancelEditRules = useCallback(() => {
     setEditingRules(false);
     setEditRulesText('');
-  };
+  }, []);
 
-  const handleUpdateLobbyCode = async () => {
+  const handleUpdateLobbyCode = useCallback(async () => {
     if (!isHost || !lobbyCode.trim()) return;
 
     const supabase = createClient();
@@ -237,9 +391,9 @@ export default function RoomPage() {
       .from('rooms')
       .update({ lobby_code: lobbyCode.trim() })
       .eq('id', roomId);
-  };
+  }, [isHost, lobbyCode, roomId]);
 
-  const handleStartPlaying = async () => {
+  const handleStartPlaying = useCallback(async () => {
     if (!isHost) return;
 
     const supabase = createClient();
@@ -247,9 +401,9 @@ export default function RoomPage() {
       .from('rooms')
       .update({ status: 'playing' })
       .eq('id', roomId);
-  };
+  }, [isHost, roomId]);
 
-  const handleLeaveRoom = async () => {
+  const handleLeaveRoom = useCallback(async () => {
     if (!currentUser || !room) return;
 
     const supabase = createClient();
@@ -275,15 +429,15 @@ export default function RoomPage() {
     }
 
     router.push('/queue');
-  };
+  }, [currentUser, room, isHost, roomId, router]);
 
-  const getIconUrl = (iconId: number) =>
-    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`;
+  const getIconUrl = useCallback((iconId: number) =>
+    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`, []);
 
-  const copyRoomLink = () => {
+  const copyRoomLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href);
     alert('Đã copy link phòng!');
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -368,61 +522,12 @@ export default function RoomPage() {
               👥 Người chơi ({players.length}/8)
             </h3>
             <div className="space-y-2">
-              {players.map(player => {
-                const agreed = room.players_agreed?.includes(player.id);
-                const isCurrentPlayer = player.id === currentUser?.id;
-                
-                return (
-                  <div
-                    key={player.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${
-                      agreed ? 'bg-green-500/10 border border-green-500/30' : 'bg-tft-dark-secondary'
-                    }`}
-                  >
-                    <img
-                      src={getIconUrl(player.profile_icon_id || 29)}
-                      alt="icon"
-                      className="w-10 h-10 rounded-lg"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getIconUrl(29);
-                      }}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-tft-gold-light">{player.riot_id}</span>
-                        {player.id === room.host_id && (
-                          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">
-                            👑 Host
-                          </span>
-                        )}
-                        {isCurrentPlayer && (
-                          <span className="text-xs text-tft-teal">(Bạn)</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-tft-gold/60">
-                        {player.tft_tier || 'Chưa rank'}
-                      </div>
-                    </div>
-                    <div>
-                      {agreed ? (
-                        <span className="text-green-400 text-sm">✓ Đồng ý</span>
-                      ) : (
-                        <span className="text-yellow-400 text-sm">⏳ Chờ</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              
-              {/* Empty slots */}
-              {[...Array(8 - players.length)].map((_, i) => (
-                <div key={`empty-${i}`} className="flex items-center gap-3 p-3 rounded-lg bg-tft-dark-secondary/50 border-2 border-dashed border-tft-gold/20">
-                  <div className="w-10 h-10 rounded-lg bg-tft-dark flex items-center justify-center">
-                    <span className="text-tft-gold/30">?</span>
-                  </div>
-                  <span className="text-tft-gold/30">Đang chờ...</span>
-                </div>
-              ))}
+              <PlayerList 
+                players={players}
+                room={room}
+                currentUserId={currentUser?.id || ''}
+                getIconUrl={getIconUrl}
+              />
             </div>
 
             {/* Lobby Code Section */}
@@ -505,42 +610,12 @@ export default function RoomPage() {
               </div>
             ) : rules.length > 0 ? (
               <div className="space-y-2">
-                {rules.map((rule, i) => {
-                  const isChecked = checkedRules.has(i) || hasAgreed;
-                  
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => !hasAgreed && toggleRuleCheck(i)}
-                      className={`
-                        flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all
-                        ${hasAgreed 
-                          ? 'bg-green-500/10 border border-green-500/30' 
-                          : isChecked 
-                            ? 'bg-tft-teal/10 border border-tft-teal/30' 
-                            : 'bg-tft-dark-secondary hover:bg-tft-dark'
-                        }
-                      `}
-                    >
-                      {/* Checkbox */}
-                      <div className={`
-                        w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-xs mt-0.5
-                        ${isChecked 
-                          ? 'bg-tft-teal text-tft-dark' 
-                          : 'border border-tft-gold/50'
-                        }
-                      `}>
-                        {isChecked && '✓'}
-                      </div>
-                      
-                      {/* Rule text */}
-                      <div className="flex-1">
-                        <span className="text-tft-teal font-bold mr-2">{i + 1}.</span>
-                        <span className="text-tft-gold-light">{rule}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                <RulesList 
+                  rules={rules}
+                  checkedRules={checkedRules}
+                  hasAgreed={hasAgreed}
+                  onToggleRule={toggleRuleCheck}
+                />
               </div>
             ) : (
               <div className="text-center py-8 text-tft-gold/40 bg-tft-dark-secondary rounded-lg">
