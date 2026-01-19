@@ -275,14 +275,14 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - _Requirements: 14.6_
 
 - [ ] 13. User Ban Status Display
-  - [-] 13.1 Create BanStatusCard component
+  - [x] 13.1 Create BanStatusCard component
     - Display ban type (24h or permanent)
     - Show time remaining for temporary bans
     - Show violation types that led to ban
     - Show ban date
     - _Requirements: 15.1, 15.2, 15.3, 15.4_
 
-  - [-] 13.2 Integrate ban status into profile page
+  - [x] 13.2 Integrate ban status into profile page
     - Display BanStatusCard if user is banned
     - Show prominent warning
     - _Requirements: 15.1, 15.2, 15.3, 15.4_
@@ -397,7 +397,7 @@ Implement hệ thống quản lý game và kiểm duyệt bao gồm: copy Riot I
     - Retry mechanisms for API failures
     - _Requirements: All_
 
-  - [ ] 18.3 Add Vietnamese translations for all UI text
+  - [x] 18.3 Add Vietnamese translations for all UI text
     - Violation type labels
     - Ban messages
     - Admin dashboard labels
