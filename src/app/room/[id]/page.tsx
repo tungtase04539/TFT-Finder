@@ -7,6 +7,8 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { debounce } from '@/lib/debounce';
+import { useMatchDetection } from '@/hooks/useMatchDetection';
+import { removeUserFromActiveRooms } from '@/lib/room-utils';
 
 // Lazy load RoomChat component
 const RoomChat = dynamic(() => import('@/components/RoomChat'), {
@@ -232,6 +234,10 @@ export default function RoomPage() {
   // Host rule editing
   const [editingRules, setEditingRules] = useState(false);
   const [editRulesText, setEditRulesText] = useState('');
+  
+  // Match detection state
+  const [matchCompleted, setMatchCompleted] = useState(false);
+  const [winner, setWinner] = useState<Profile | null>(null);
 
   const isHost = currentUser?.id === room?.host_id;
   const hasAgreed = room?.players_agreed?.includes(currentUser?.id || '');
@@ -247,6 +253,51 @@ export default function RoomPage() {
   );
 
   const allRulesChecked = rules.length === 0 || checkedRules.size === rules.length;
+
+  // Get player PUUIDs for match detection
+  const playerPuuids = useMemo(() => 
+    players.map(p => p.puuid).filter(Boolean),
+    [players]
+  );
+
+  // Match detection - enable when room is ready OR playing
+  const { matchResult, checking } = useMatchDetection({
+    puuids: playerPuuids,
+    enabled: (room?.status === 'ready' || room?.status === 'playing') && !matchCompleted,
+    pollInterval: 30000, // Check every 30 seconds
+    onMatchStartDetected: async () => {
+      // Auto-update room status to "playing" when match starts
+      if (room?.status === 'ready') {
+        console.log('[ROOM] Match started! Auto-updating status to playing...');
+        const supabase = createClient();
+        await supabase
+          .from('rooms')
+          .update({ status: 'playing' })
+          .eq('id', roomId);
+      }
+    },
+    onMatchFound: (result) => {
+      console.log('[ROOM] Match completed!', result);
+      
+      // Find winner
+      const winnerPlayer = players.find(
+        p => p.puuid === result.winner?.puuid
+      );
+      
+      setWinner(winnerPlayer || null);
+      setMatchCompleted(true);
+      
+      // Update room status to completed
+      const supabase = createClient();
+      supabase
+        .from('rooms')
+        .update({ status: 'completed' })
+        .eq('id', roomId)
+        .then(() => {
+          console.log('[ROOM] Room status updated to completed');
+        });
+    }
+  });
 
   const fetchRoomData = useCallback(async () => {
     const supabase = createClient();
@@ -301,7 +352,12 @@ export default function RoomPage() {
         !roomData.players?.includes(user.id) && 
         (roomData.players?.length || 0) < maxPlayers) {
       
-      // Remove from queue first
+      console.log('[ROOM] Auto-joining room...');
+      
+      // Remove from any other active rooms first (single room constraint)
+      await removeUserFromActiveRooms(user.id);
+      
+      // Remove from queue
       await supabase
         .from('queue')
         .delete()
@@ -644,8 +700,102 @@ export default function RoomPage() {
               />
             </div>
 
+            {/* Match Detection Status */}
+            {(room.status === 'ready' || room.status === 'playing') && !matchCompleted && (
+              <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  {checking && (
+                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  )}
+                  <h4 className="text-blue-400 font-semibold">
+                    🎮 Đang theo dõi trận đấu...
+                  </h4>
+                </div>
+                <p className="text-sm text-blue-300/80">
+                  Hệ thống sẽ tự động phát hiện khi trận đấu bắt đầu và kết thúc
+                </p>
+                <p className="text-xs text-blue-300/60 mt-1">
+                  (Kiểm tra mỗi 30 giây)
+                </p>
+              </div>
+            )}
+
+            {/* Match Completed */}
+            {matchCompleted && matchResult && (
+              <div className="p-6 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <h3 className="text-2xl font-bold text-green-400 mb-4">
+                  ✅ Trận đấu đã kết thúc!
+                </h3>
+                
+                {winner && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+                    <p className="text-yellow-400 text-lg mb-2">🏆 Người chiến thắng:</p>
+                    <div className="flex items-center gap-3">
+                      <Image
+                        src={getIconUrl(winner.profile_icon_id || 29)}
+                        alt="winner"
+                        width={48}
+                        height={48}
+                        className="rounded-full"
+                        unoptimized
+                      />
+                      <p className="text-3xl font-bold text-yellow-300">
+                        {winner.riot_id}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Player Placements */}
+                <div className="mt-4">
+                  <h4 className="font-semibold text-tft-gold mb-2">📊 Kết quả:</h4>
+                  <div className="space-y-2">
+                    {matchResult.players
+                      ?.filter(p => p.found)
+                      .sort((a, b) => (a.placement || 0) - (b.placement || 0))
+                      .map(p => {
+                        const player = players.find(pl => pl.puuid === p.puuid);
+                        return (
+                          <div key={p.puuid} className="flex items-center gap-3 p-2 bg-tft-dark-secondary rounded">
+                            <span className={`
+                              font-bold text-lg w-8
+                              ${p.placement === 1 ? 'text-yellow-400' : 
+                                p.placement === 2 ? 'text-gray-300' :
+                                p.placement === 3 ? 'text-orange-400' :
+                                'text-gray-500'}
+                            `}>
+                              #{p.placement}
+                            </span>
+                            <Image
+                              src={getIconUrl(player?.profile_icon_id || 29)}
+                              alt="player"
+                              width={32}
+                              height={32}
+                              className="rounded-full"
+                              unoptimized
+                            />
+                            <span className="flex-1 text-tft-gold-light">{player?.riot_id}</span>
+                            <span className="text-xs text-tft-gold/60">Lv.{p.level}</span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-green-500/20 text-sm text-gray-400">
+                  <p>Match ID: {matchResult.matchId}</p>
+                  {matchResult.match && (
+                    <>
+                      <p>Thời gian: {new Date(matchResult.match.gameDatetime).toLocaleString('vi-VN')}</p>
+                      <p>Độ dài: {Math.floor(matchResult.match.gameLength / 60)} phút</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Lobby Code Section */}
-            {room.status === 'ready' && (
+            {room.status === 'ready' && !matchCompleted && (
               <div className="mt-6 p-4 bg-tft-teal/10 border border-tft-teal/30 rounded-lg">
                 <h4 className="text-tft-teal font-semibold mb-2">🎮 Lobby Code</h4>
                 {isHost ? (
