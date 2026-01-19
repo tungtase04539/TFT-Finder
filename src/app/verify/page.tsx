@@ -75,6 +75,10 @@ export default function VerifyPage() {
       setCurrentIconId(data.data.profileIconId);
       setPuuid(data.data.puuid);
 
+      // Use the EXACT gameName#tagLine from Riot API (not user input)
+      const correctRiotId = `${data.data.gameName}#${data.data.tagLine}`;
+      setRiotId(correctRiotId); // Update input to show correct ID
+
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -83,9 +87,9 @@ export default function VerifyPage() {
           .from('profiles')
           .upsert({
             id: user.id,
-            riot_id: riotId,
+            riot_id: correctRiotId, // Save the correct ID from API
             puuid: data.data.puuid,
-            summoner_name: `${data.data.gameName}#${data.data.tagLine}`,
+            summoner_name: correctRiotId,
           });
       }
 
