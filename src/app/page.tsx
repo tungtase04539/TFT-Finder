@@ -47,8 +47,11 @@ export default function HomePage() {
       {/* Header */}
       <header className="flex justify-between items-center px-6 py-4 border-b border-tft-gold/20">
         <Logo size="md" showText={true} href="/" />
-        <Link href="/login" className="btn-tft-secondary text-sm">
-          Đăng Nhập
+        <Link 
+          href="/login" 
+          className="btn-primary px-6 py-2 text-sm font-medium"
+        >
+          🔑 Đăng Nhập
         </Link>
       </header>
 
