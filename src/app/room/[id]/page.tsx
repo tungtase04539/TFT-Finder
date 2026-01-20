@@ -13,6 +13,7 @@ import { useMatchResultTracking } from '@/hooks/useMatchResultTracking';
 import { removeUserFromActiveRooms } from '@/lib/room-utils';
 import { removePlayersNotInGame } from '@/lib/game-detection';
 import { checkBanStatus } from '@/lib/ban-middleware';
+import { handleIconError } from '@/lib/riot-icons';
 import Logo from '@/components/Logo';
 import CopyRiotIdButton from '@/components/CopyRiotIdButton';
 import ReportButton from '@/components/ReportButton';
@@ -101,6 +102,7 @@ const PlayerList = memo(({
               width={40}
               height={40}
               className="rounded-full"
+              onError={handleIconError}
               unoptimized
             />
             <div className="flex-1">
@@ -719,8 +721,10 @@ export default function RoomPage() {
     router.push('/queue');
   }, [currentUser, room, isHost, roomId, router]);
 
-  const getIconUrl = useCallback((iconId: number) =>
-    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`, []);
+  const getIconUrl = useCallback((iconId: number) => {
+    const { getProfileIconUrl } = require('@/lib/riot-icons');
+    return getProfileIconUrl(iconId);
+  }, []);
 
   const copyRoomLink = useCallback(() => {
     navigator.clipboard.writeText(window.location.href);
@@ -977,6 +981,7 @@ export default function RoomPage() {
                         width={48}
                         height={48}
                         className="rounded-full"
+                        onError={handleIconError}
                         unoptimized
                       />
                       <p className="text-3xl font-bold text-yellow-300">
@@ -1012,6 +1017,7 @@ export default function RoomPage() {
                               width={32}
                               height={32}
                               className="rounded-full"
+                              onError={handleIconError}
                               unoptimized
                             />
                             <span className="flex-1 text-tft-gold-light">{player?.riot_id}</span>

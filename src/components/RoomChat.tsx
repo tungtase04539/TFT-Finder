@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { throttle } from '@/lib/debounce';
+import { handleIconError } from '@/lib/riot-icons';
 
 interface Message {
   id: string;
@@ -121,8 +122,10 @@ function RoomChat({ roomId, currentUserId }: RoomChatProps) {
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   }, []);
 
-  const getIconUrl = useCallback((iconId: number) =>
-    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`, []);
+  const getIconUrl = useCallback((iconId: number) => {
+    const { getProfileIconUrl } = require('@/lib/riot-icons');
+    return getProfileIconUrl(iconId);
+  }, []);
 
   return (
     <div className="flex flex-col h-full bg-tft-dark rounded-lg border border-tft-gold/20 overflow-hidden">
@@ -216,6 +219,7 @@ const MessageList = memo(({
                 width={32}
                 height={32}
                 className="rounded-full w-full h-full object-cover"
+                onError={handleIconError}
                 unoptimized
               />
             </div>

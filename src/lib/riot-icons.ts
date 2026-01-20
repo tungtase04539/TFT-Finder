@@ -7,7 +7,7 @@
 export const FALLBACK_ICON_ID = 29;
 
 // Latest stable Data Dragon version
-export const DDRAGON_VERSION = '15.1.1';
+export const DDRAGON_VERSION = '16.1.1';
 
 /**
  * Get profile icon URL through our image proxy

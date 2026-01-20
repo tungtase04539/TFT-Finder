@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { handleIconError } from '@/lib/riot-icons';
 import Logo from '@/components/Logo';
 
 export default function VerifyPage() {
@@ -190,8 +191,10 @@ export default function VerifyPage() {
     }
   };
 
-  const getIconUrl = (iconId: number) => 
-    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId}.png`;
+  const getIconUrl = (iconId: number) => {
+    const { getProfileIconUrl } = require('@/lib/riot-icons');
+    return getProfileIconUrl(iconId);
+  };
 
   if (checking) {
     return (
@@ -279,6 +282,7 @@ export default function VerifyPage() {
                           width={96}
                           height={96}
                           className="w-full h-full object-cover"
+                          onError={handleIconError}
                         />
                       )}
                     </div>

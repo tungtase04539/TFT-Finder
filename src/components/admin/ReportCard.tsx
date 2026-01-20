@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { handleIconError } from '@/lib/riot-icons';
 
 interface Report {
   id: string;
@@ -41,8 +42,10 @@ export default function ReportCard({ report, onApprove, onReject }: ReportCardPr
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
-  const getIconUrl = (iconId: number) =>
-    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`;
+  const getIconUrl = (iconId: number) => {
+    const { getProfileIconUrl } = require('@/lib/riot-icons');
+    return getProfileIconUrl(iconId);
+  };
 
   const handleApprove = async () => {
     if (processing) return;
@@ -104,6 +107,7 @@ export default function ReportCard({ report, onApprove, onReject }: ReportCardPr
                 width={32}
                 height={32}
                 className="rounded-full"
+                onError={handleIconError}
                 unoptimized
               />
               <span className="text-sm text-tft-gold-light">
@@ -122,6 +126,7 @@ export default function ReportCard({ report, onApprove, onReject }: ReportCardPr
                 width={32}
                 height={32}
                 className="rounded-full"
+                onError={handleIconError}
                 unoptimized
               />
               <div className="flex-1">
