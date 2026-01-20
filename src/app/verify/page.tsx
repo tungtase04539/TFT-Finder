@@ -18,6 +18,7 @@ export default function VerifyPage() {
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(true);
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'checking' | 'success' | 'failed'>('idle');
+  const [isChangingAccount, setIsChangingAccount] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,9 +37,9 @@ export default function VerifyPage() {
         .eq('id', user.id)
         .single();
 
+      // If already verified, this is account change mode
       if (profile?.verified) {
-        router.push('/queue');
-        return;
+        setIsChangingAccount(true);
       }
 
       if (profile?.riot_id) {
@@ -158,6 +159,7 @@ export default function VerifyPage() {
 
         if (user) {
           // Save all profile data including TFT rank
+          // Reset win_count and total_games if changing account
           await supabase
             .from('profiles')
             .update({
@@ -173,12 +175,18 @@ export default function VerifyPage() {
               tft_wins: data.data.tftRank?.wins || 0,
               tft_losses: data.data.tftRank?.losses || 0,
               tft_rank_updated_at: new Date().toISOString(),
+              // Reset achievements when changing account
+              ...(isChangingAccount ? { win_count: 0, total_games: 0 } : {})
             })
             .eq('id', user.id);
         }
 
         setTimeout(() => {
-          router.push('/queue');
+          if (isChangingAccount) {
+            router.push('/profile');
+          } else {
+            router.push('/queue');
+          }
         }, 2000);
       } else {
         setVerifyStatus('failed');
@@ -208,24 +216,43 @@ export default function VerifyPage() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="flex justify-between items-center px-6 py-4 border-b border-tft-gold/20">
-        <Logo size="md" showText={true} href="/" />
+        <Logo size="md" showText={true} href={isChangingAccount ? "/profile" : "/"} />
+        {isChangingAccount && (
+          <button
+            onClick={() => router.push('/profile')}
+            className="text-tft-teal hover:text-tft-teal/80 text-sm"
+          >
+            ← Quay lại Profile
+          </button>
+        )}
       </header>
 
       {/* Verification Flow */}
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="card-tft p-8 rounded-xl w-full max-w-lg gold-glow">
           <h2 className="text-2xl font-bold text-tft-gold-light text-center mb-2">
-            🔐 Xác Minh Tài Khoản Riot
+            {isChangingAccount ? '🔄 Đổi Tài Khoản LOL' : '🔐 Xác Minh Tài Khoản Riot'}
           </h2>
           <p className="text-tft-gold/60 text-center mb-8">
-            Chứng minh bạn sở hữu tài khoản này
+            {isChangingAccount 
+              ? 'Xác minh tài khoản LOL mới của bạn'
+              : 'Chứng minh bạn sở hữu tài khoản này'
+            }
           </p>
 
           {step === 'input' ? (
             <form onSubmit={handleSubmitRiotId} className="space-y-6">
+              {isChangingAccount && (
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <p className="text-yellow-400 text-sm">
+                    ⚠️ <strong>Lưu ý:</strong> Khi đổi tài khoản LOL, tất cả dữ liệu thành tích (win count) sẽ bị reset về 0.
+                  </p>
+                </div>
+              )}
+              
               <div>
                 <label className="block text-tft-gold text-sm mb-2">
-                  Riot ID của bạn
+                  {isChangingAccount ? 'Riot ID mới' : 'Riot ID của bạn'}
                 </label>
                 <input
                   type="text"
@@ -266,8 +293,12 @@ export default function VerifyPage() {
               {verifyStatus === 'success' ? (
                 <div className="text-center py-8">
                   <div className="text-6xl mb-4">✅</div>
-                  <h3 className="text-2xl font-bold text-tft-teal mb-2">Xác minh thành công!</h3>
-                  <p className="text-tft-gold/70">Đang chuyển đến hàng chờ...</p>
+                  <h3 className="text-2xl font-bold text-tft-teal mb-2">
+                    {isChangingAccount ? 'Đổi tài khoản thành công!' : 'Xác minh thành công!'}
+                  </h3>
+                  <p className="text-tft-gold/70">
+                    {isChangingAccount ? 'Đang quay lại trang profile...' : 'Đang chuyển đến hàng chờ...'}
+                  </p>
                 </div>
               ) : (
                 <>

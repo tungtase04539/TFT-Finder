@@ -205,9 +205,17 @@ export default function ProfilePage() {
             </h2>
             <div className="space-y-3">
               {profile.riot_id && (
-                <div className="flex items-center gap-3">
-                  <span className="text-[#a09080] w-24">Riot ID:</span>
-                  <span className="text-[#f0e6d2] font-medium">{profile.riot_id}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#a09080] w-24">Riot ID:</span>
+                    <span className="text-[#f0e6d2] font-medium">{profile.riot_id}</span>
+                  </div>
+                  <button
+                    onClick={() => router.push('/verify')}
+                    className="px-4 py-2 bg-[#c8aa6e] text-[#010a13] rounded hover:bg-[#f0e6d2] transition-colors text-sm font-medium"
+                  >
+                    🔄 Đổi tài khoản LOL
+                  </button>
                 </div>
               )}
               {profile.email && (
