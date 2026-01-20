@@ -300,36 +300,37 @@ export default function LobbyBrowserPage() {
       {/* Header */}
       <header className="flex justify-between items-center px-6 py-4 border-b border-tft-gold/20">
         <Logo size="md" showText={true} href="/" />
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleCreateRoom}
-            className="btn-primary px-4 py-2"
-          >
-            ➕ Tạo Phòng Mới
-          </button>
-          <div className="flex items-center gap-2">
-            <Image
-              src={getIconUrl(user?.profile_icon_id || 29)}
-              alt="icon"
-              width={32}
-              height={32}
-              className="rounded-full"
-              unoptimized
-            />
-            <span className="text-tft-gold-light text-sm">{user?.riot_id}</span>
-          </div>
-        </div>
+        <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Image
+            src={getIconUrl(user?.profile_icon_id || 29)}
+            alt="icon"
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
+          <span className="text-tft-gold-light text-sm">{user?.riot_id}</span>
+        </Link>
       </header>
 
       <main className="flex-1 container mx-auto px-6 py-8">
         {/* Title */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-tft-gold mb-2">
-            🎮 Phòng Custom Game
-          </h2>
-          <p className="text-tft-gold/60">
-            Chọn phòng có luật phù hợp hoặc tạo phòng mới
-          </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="text-center flex-1">
+            <h2 className="text-3xl font-bold text-tft-gold mb-2">
+              🎮 Phòng Custom Game
+            </h2>
+            <p className="text-tft-gold/60">
+              Chọn phòng có luật phù hợp hoặc tạo phòng mới
+            </p>
+          </div>
+          {rooms.length > 0 && (
+            <button
+              onClick={handleCreateRoom}
+              className="btn-primary px-6 py-3 whitespace-nowrap"
+            >
+              ➕ Tạo Phòng
+            </button>
+          )}
         </div>
 
         {/* Rooms Grid */}
