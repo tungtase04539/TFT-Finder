@@ -114,9 +114,16 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      // Force redirect to homepage with full page reload
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still redirect even if error
+      window.location.href = '/';
+    }
   };
 
   const handleCreatePassword = () => {
