@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { checkAdminAccess } from '@/lib/admin-middleware';
+import Logo from '@/components/Logo';
 
 interface DashboardStats {
   totalUsers: number;
@@ -79,12 +80,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="flex justify-between items-center px-6 py-4 border-b border-tft-gold/20 bg-tft-dark-secondary">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-tft-gold to-tft-gold-dark rounded-lg flex items-center justify-center">
-            <span className="text-tft-dark font-bold text-xl">⬡</span>
-          </div>
-          <h1 className="text-xl font-bold text-tft-gold">TFT FINDER - ADMIN</h1>
-        </Link>
+        <Logo size="md" showText={true} href="/" admin={true} />
         <div className="flex items-center gap-4">
           <Link 
             href="/queue"

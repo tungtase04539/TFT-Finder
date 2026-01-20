@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Logo from '@/components/Logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -83,12 +84,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="flex justify-between items-center px-6 py-4 border-b border-tft-gold/20">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-tft-gold to-tft-gold-dark rounded-lg flex items-center justify-center">
-            <span className="text-tft-dark font-bold text-xl">⬡</span>
-          </div>
-          <h1 className="text-xl font-bold text-tft-gold">TFT FINDER</h1>
-        </Link>
+        <Logo size="md" showText={true} href="/" />
       </header>
 
       {/* Login Form */}

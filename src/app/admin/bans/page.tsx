@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { checkAdminAccess } from '@/lib/admin-middleware';
 import BanList from '@/components/admin/BanList';
 import { toast } from '@/lib/toast';
+import Logo from '@/components/Logo';
 
 interface Ban {
   id: string;
@@ -92,17 +93,7 @@ export default function AdminBansPage() {
       <header className="border-b border-tft-gold/20 bg-tft-dark-secondary/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/admin/dashboard"
-                className="text-tft-gold hover:text-tft-gold-light transition-colors"
-              >
-                ← Dashboard
-              </Link>
-              <h1 className="text-2xl font-bold text-tft-gold">
-                Quản Lý Lệnh Cấm
-              </h1>
-            </div>
+            <Logo size="md" showText={true} href="/admin/dashboard" admin={true} />
 
             <Link
               href="/queue"

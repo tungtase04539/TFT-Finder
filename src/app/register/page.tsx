@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import RegisterForm from '@/components/auth/RegisterForm';
+import Logo from '@/components/Logo';
 
 export default function RegisterPage() {
   return (
@@ -7,10 +8,8 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[#c8aa6e] mb-2">
-            ⬡ TFT FINDER
-          </h1>
-          <p className="text-[#a09080]">
+          <Logo size="lg" showText={true} href="/" />
+          <p className="text-[#a09080] mt-2">
             Tìm Trận Đấu Trường Chân Lý
           </p>
         </div>

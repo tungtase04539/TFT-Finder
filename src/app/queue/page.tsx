@@ -9,6 +9,7 @@ import { debounce } from '@/lib/debounce';
 import { checkBanStatus } from '@/lib/ban-middleware';
 import BanMessage from '@/components/BanMessage';
 import WinCountBadge from '@/components/WinCountBadge';
+import Logo from '@/components/Logo';
 
 interface Room {
   id: string;
@@ -298,12 +299,7 @@ export default function LobbyBrowserPage() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="flex justify-between items-center px-6 py-4 border-b border-tft-gold/20">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-tft-gold to-tft-gold-dark rounded-lg flex items-center justify-center">
-            <span className="text-tft-dark font-bold text-xl">⬡</span>
-          </div>
-          <h1 className="text-xl font-bold text-tft-gold">TFT FINDER</h1>
-        </Link>
+        <Logo size="md" showText={true} href="/" />
         <div className="flex items-center gap-4">
           <button
             onClick={handleCreateRoom}
