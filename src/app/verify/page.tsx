@@ -221,8 +221,10 @@ export default function VerifyPage() {
 
       if (response.ok) {
         const newIconId = data.data.profileIconId;
+        // Update BOTH current and original icon
         setCurrentIconId(newIconId);
-        console.log('[VERIFY] Refreshed icon:', newIconId);
+        setOriginalIconId(newIconId);
+        console.log('[VERIFY] Refreshed icon - reset baseline to:', newIconId);
       }
     } catch (err) {
       console.error('Refresh icon error:', err);
@@ -366,7 +368,8 @@ export default function VerifyPage() {
                     </h3>
                     <p className="text-tft-gold-light/80 text-sm">
                       Đổi sang <strong>bất kỳ icon nào khác</strong> trong LOL Client, 
-                      sau đó quay lại đây nhấn <strong>Xác Minh</strong>.
+                      sau đó nhấn nút <strong>🔄 Làm mới</strong> bên trên, 
+                      rồi nhấn <strong>Xác Minh</strong>.
                     </p>
                   </div>
 
@@ -376,7 +379,8 @@ export default function VerifyPage() {
                       <li>Mở <strong>LOL Client</strong></li>
                       <li>Click vào <strong>Avatar</strong> của bạn (góc trên)</li>
                       <li>Chọn <strong>bất kỳ icon nào khác</strong></li>
-                      <li>Quay lại đây và nhấn <strong>Xác Minh</strong></li>
+                      <li>Quay lại đây và nhấn nút <strong>🔄</strong> (bên cạnh "Icon hiện tại")</li>
+                      <li>Nhấn <strong>Xác Minh</strong></li>
                     </ol>
                   </div>
 
