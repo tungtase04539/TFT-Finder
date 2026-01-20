@@ -313,6 +313,7 @@ export default function VerifyPage() {
                           height={96}
                           className="w-full h-full object-cover"
                           onError={handleIconError}
+                          unoptimized
                         />
                       )}
                     </div>
