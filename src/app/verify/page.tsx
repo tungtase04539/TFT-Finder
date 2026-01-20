@@ -33,7 +33,7 @@ export default function VerifyPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('verified, riot_id, puuid')
+        .select('verified, riot_id, puuid, verification_baseline_icon')
         .eq('id', user.id)
         .single();
 
@@ -44,6 +44,12 @@ export default function VerifyPage() {
 
       if (profile?.riot_id) {
         setRiotId(profile.riot_id);
+      }
+
+      // Restore baseline icon if exists
+      if (profile?.verification_baseline_icon) {
+        setOriginalIconId(profile.verification_baseline_icon);
+        setCurrentIconId(profile.verification_baseline_icon);
       }
 
       setChecking(false);
@@ -91,8 +97,9 @@ export default function VerifyPage() {
       }
 
       // Save original icon to compare later
-      setOriginalIconId(data.data.profileIconId);
-      setCurrentIconId(data.data.profileIconId);
+      const baselineIconId = data.data.profileIconId;
+      setOriginalIconId(baselineIconId);
+      setCurrentIconId(baselineIconId);
       setPuuid(data.data.puuid);
 
       setRiotId(correctRiotId); // Update input to show correct ID
@@ -100,13 +107,15 @@ export default function VerifyPage() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
+        // Save baseline icon to database for persistence
         await supabase
           .from('profiles')
           .upsert({
             id: user.id,
-            riot_id: correctRiotId, // Save the correct ID from API
+            riot_id: correctRiotId,
             puuid: data.data.puuid,
             summoner_name: correctRiotId,
+            verification_baseline_icon: baselineIconId, // Save baseline for comparison
           });
       }
 
@@ -209,30 +218,6 @@ export default function VerifyPage() {
     return `${getProfileIconUrl(iconId)}`;
   };
 
-  const handleRefreshIcon = async () => {
-    if (!riotId) return;
-    
-    setLoading(true);
-    try {
-      // Force fresh data from Riot API
-      const timestamp = Date.now();
-      const response = await fetch(`/api/riot?riotId=${encodeURIComponent(riotId)}&t=${timestamp}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        const newIconId = data.data.profileIconId;
-        // Update BOTH current and original icon
-        setCurrentIconId(newIconId);
-        setOriginalIconId(newIconId);
-        console.log('[VERIFY] Refreshed icon - reset baseline to:', newIconId);
-      }
-    } catch (err) {
-      console.error('Refresh icon error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -333,17 +318,7 @@ export default function VerifyPage() {
                 <>
                   {/* Current Icon Display */}
                   <div className="bg-tft-dark-secondary p-6 rounded-lg border border-tft-gold/30 text-center">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <p className="text-tft-gold/60 text-sm">Icon hiện tại của bạn</p>
-                      <button
-                        onClick={handleRefreshIcon}
-                        disabled={loading}
-                        className="text-xs text-tft-teal hover:text-tft-teal/80 disabled:opacity-50"
-                        title="Làm mới icon"
-                      >
-                        🔄
-                      </button>
-                    </div>
+                    <p className="text-tft-gold/60 text-sm mb-3">Icon hiện tại của bạn</p>
                     <div className="w-24 h-24 mx-auto rounded-lg overflow-hidden border-2 border-tft-gold/50 gold-glow">
                       {currentIconId && (
                         <Image
@@ -364,12 +339,11 @@ export default function VerifyPage() {
                   {/* Simple Instructions */}
                   <div className="bg-tft-teal/10 border border-tft-teal/30 p-4 rounded-lg">
                     <h3 className="text-tft-teal font-bold mb-2 flex items-center gap-2">
-                      <span>💡</span> Cách xác minh đơn giản
+                      <span>💡</span> Cách xác minh
                     </h3>
                     <p className="text-tft-gold-light/80 text-sm">
                       Đổi sang <strong>bất kỳ icon nào khác</strong> trong LOL Client, 
-                      sau đó nhấn nút <strong>🔄 Làm mới</strong> bên trên, 
-                      rồi nhấn <strong>Xác Minh</strong>.
+                      sau đó quay lại đây nhấn <strong>Xác Minh</strong>.
                     </p>
                   </div>
 
@@ -379,8 +353,7 @@ export default function VerifyPage() {
                       <li>Mở <strong>LOL Client</strong></li>
                       <li>Click vào <strong>Avatar</strong> của bạn (góc trên)</li>
                       <li>Chọn <strong>bất kỳ icon nào khác</strong></li>
-                      <li>Quay lại đây và nhấn nút <strong>🔄</strong> (bên cạnh "Icon hiện tại")</li>
-                      <li>Nhấn <strong>Xác Minh</strong></li>
+                      <li>Quay lại đây và nhấn <strong>Xác Minh</strong></li>
                     </ol>
                   </div>
 
