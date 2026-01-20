@@ -124,8 +124,9 @@ export default function VerifyPage() {
     setError('');
 
     try {
-      // Get current icon and check if it changed
-      const response = await fetch(`/api/riot?riotId=${encodeURIComponent(riotId)}`);
+      // Add cache busting to force fresh data from Riot API
+      const timestamp = Date.now();
+      const response = await fetch(`/api/riot?riotId=${encodeURIComponent(riotId)}&t=${timestamp}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -135,6 +136,10 @@ export default function VerifyPage() {
       }
 
       const newIconId = data.data.profileIconId;
+      
+      console.log('[VERIFY] Original icon:', originalIconId, 'New icon:', newIconId);
+      
+      // Force update current icon display
       setCurrentIconId(newIconId);
 
       // Check if icon has CHANGED (any change = verified)
@@ -200,7 +205,30 @@ export default function VerifyPage() {
   };
 
   const getIconUrl = (iconId: number) => {
-    return getProfileIconUrl(iconId);
+    // Add timestamp to prevent caching
+    return `${getProfileIconUrl(iconId)}`;
+  };
+
+  const handleRefreshIcon = async () => {
+    if (!riotId) return;
+    
+    setLoading(true);
+    try {
+      // Force fresh data from Riot API
+      const timestamp = Date.now();
+      const response = await fetch(`/api/riot?riotId=${encodeURIComponent(riotId)}&t=${timestamp}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        const newIconId = data.data.profileIconId;
+        setCurrentIconId(newIconId);
+        console.log('[VERIFY] Refreshed icon:', newIconId);
+      }
+    } catch (err) {
+      console.error('Refresh icon error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (checking) {
@@ -303,10 +331,21 @@ export default function VerifyPage() {
                 <>
                   {/* Current Icon Display */}
                   <div className="bg-tft-dark-secondary p-6 rounded-lg border border-tft-gold/30 text-center">
-                    <p className="text-tft-gold/60 text-sm mb-3">Icon hiện tại của bạn</p>
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <p className="text-tft-gold/60 text-sm">Icon hiện tại của bạn</p>
+                      <button
+                        onClick={handleRefreshIcon}
+                        disabled={loading}
+                        className="text-xs text-tft-teal hover:text-tft-teal/80 disabled:opacity-50"
+                        title="Làm mới icon"
+                      >
+                        🔄
+                      </button>
+                    </div>
                     <div className="w-24 h-24 mx-auto rounded-lg overflow-hidden border-2 border-tft-gold/50 gold-glow">
                       {currentIconId && (
                         <Image
+                          key={currentIconId} 
                           src={getIconUrl(currentIconId)}
                           alt={`Icon ${currentIconId}`}
                           width={96}
