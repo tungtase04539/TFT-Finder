@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { handleIconError } from '@/lib/riot-icons';
+import { handleIconError, getProfileIconUrl } from '@/lib/riot-icons';
 import Logo from '@/components/Logo';
 
 export default function VerifyPage() {
@@ -200,7 +200,6 @@ export default function VerifyPage() {
   };
 
   const getIconUrl = (iconId: number) => {
-    const { getProfileIconUrl } = require('@/lib/riot-icons');
     return getProfileIconUrl(iconId);
   };
 
