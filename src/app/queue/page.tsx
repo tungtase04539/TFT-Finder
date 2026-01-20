@@ -10,6 +10,7 @@ import { checkBanStatus } from '@/lib/ban-middleware';
 import BanMessage from '@/components/BanMessage';
 import WinCountBadge from '@/components/WinCountBadge';
 import Logo from '@/components/Logo';
+import { getProfileIconUrl, handleIconError } from '@/lib/riot-icons';
 
 interface Room {
   id: string;
@@ -78,6 +79,7 @@ const RoomCard = memo(({
           height={40}
           className="rounded-full"
           unoptimized
+          onError={handleIconError}
         />
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -276,8 +278,7 @@ export default function LobbyBrowserPage() {
     router.push(`/room/${roomId}`);
   }, [router]);
 
-  const getIconUrl = useCallback((iconId: number) =>
-    `https://ddragon.leagueoflegends.com/cdn/15.1.1/img/profileicon/${iconId || 29}.png`, []);
+  const getIconUrl = useCallback((iconId: number) => getProfileIconUrl(iconId), []);
 
   const parseRules = useCallback((rulesText: string | null): string[] => {
     if (!rulesText) return [];

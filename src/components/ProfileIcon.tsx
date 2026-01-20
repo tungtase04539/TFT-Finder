@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { getProfileIconUrl, getFallbackIconUrl } from '@/lib/riot-icons';
 
 interface ProfileIconProps {
   iconId?: number | null;
@@ -10,28 +11,13 @@ interface ProfileIconProps {
   alt?: string;
 }
 
-// Default fallback icon ID (a common icon that always exists)
-const FALLBACK_ICON_ID = 29;
-
-// Latest stable Data Dragon version
-const DDRAGON_VERSION = '15.1.1';
-
-export function getIconUrl(iconId?: number | null): string {
-  const id = iconId || FALLBACK_ICON_ID;
-  return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/profileicon/${id}.png`;
-}
-
-export function getFallbackIconUrl(): string {
-  return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/profileicon/${FALLBACK_ICON_ID}.png`;
-}
-
 export default function ProfileIcon({ 
   iconId, 
   size = 48, 
   className = '', 
   alt = 'Profile Icon' 
 }: ProfileIconProps) {
-  const [imgSrc, setImgSrc] = useState(getIconUrl(iconId));
+  const [imgSrc, setImgSrc] = useState(getProfileIconUrl(iconId));
   const [hasError, setHasError] = useState(false);
 
   const handleError = () => {
@@ -49,7 +35,7 @@ export default function ProfileIcon({
       height={size}
       className={`rounded-lg ${className}`}
       onError={handleError}
-      unoptimized // Avoid Next.js image optimization issues with external images
+      unoptimized
     />
   );
 }
@@ -61,10 +47,14 @@ export function ProfileIconImg({
   className = '', 
   alt = 'Profile Icon' 
 }: ProfileIconProps) {
-  const [imgSrc, setImgSrc] = useState(getIconUrl(iconId));
+  const [imgSrc, setImgSrc] = useState(getProfileIconUrl(iconId));
+  const [hasError, setHasError] = useState(false);
 
   const handleError = () => {
-    setImgSrc(getFallbackIconUrl());
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc(getFallbackIconUrl());
+    }
   };
 
   return (
